@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Invoke-RestMethod -Uri \"https://hub.docker.com/v2/repositories/bitnami/openldap/tags?page_size=20&ordering=last_updated\"\\).results | Select-Object -First 15 -ExpandProperty name)",
+      "PowerShell(Invoke-RestMethod -Uri \"https://hub.docker.com/v2/repositories/bitnami/openldap/tags?page_size=20&ordering=last_updated\")"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "atencion": {
+    "permissions": ["read:atencion", "write:atencion", "read:pedidos", "write:pedidos"]
+  },
+  "rrhh": {
+    "permissions": ["read:rrhh", "write:rrhh"]
+  },
+  "inventario": {
+    "permissions": ["read:inventario", "write:inventario"]
+  },
+  "guest": {
+    "permissions": ["read:catalog", "checkout"]
+  }
+}

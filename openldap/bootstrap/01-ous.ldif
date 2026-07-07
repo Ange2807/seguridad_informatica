@@ -1,0 +1,13 @@
+dn: dc=empresa,dc=local
+objectClass: dcObject
+objectClass: organization
+dc: empresa
+o: Empresa
+
+dn: ou=people,dc=empresa,dc=local
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=empresa,dc=local
+objectClass: organizationalUnit
+ou: groups

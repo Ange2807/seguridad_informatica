@@ -1,0 +1,14 @@
+dn: cn=atencion,ou=groups,dc=empresa,dc=local
+objectClass: groupOfNames
+cn: atencion
+member: uid=ana,ou=people,dc=empresa,dc=local
+
+dn: cn=rrhh,ou=groups,dc=empresa,dc=local
+objectClass: groupOfNames
+cn: rrhh
+member: uid=carlos,ou=people,dc=empresa,dc=local
+
+dn: cn=inventario,ou=groups,dc=empresa,dc=local
+objectClass: groupOfNames
+cn: inventario
+member: uid=maria,ou=people,dc=empresa,dc=local

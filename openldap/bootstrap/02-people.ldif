@@ -1,0 +1,20 @@
+dn: uid=ana,ou=people,dc=empresa,dc=local
+objectClass: inetOrgPerson
+uid: ana
+cn: Ana Gomez
+sn: Gomez
+userPassword: Password123
+
+dn: uid=carlos,ou=people,dc=empresa,dc=local
+objectClass: inetOrgPerson
+uid: carlos
+cn: Carlos Perez
+sn: Perez
+userPassword: Password123
+
+dn: uid=maria,ou=people,dc=empresa,dc=local
+objectClass: inetOrgPerson
+uid: maria
+cn: Maria Lopez
+sn: Lopez
+userPassword: Password123

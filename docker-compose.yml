@@ -1,0 +1,169 @@
+networks:
+  net-dmz:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
+  net-online:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.16.5.0/24
+  net-atencion:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.16.1.0/24
+  net-rrhh:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.16.2.0/24
+  net-inventario:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.16.3.0/24
+  net-gateway:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.16.4.0/24
+  net-servers:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  proxy1:
+    build: ./proxy1
+    networks:
+      net-dmz:
+        ipv4_address: 10.0.0.10
+      net-online:
+    ports:
+      - "443:443"
+    depends_on:
+      - online-platform
+    restart: unless-stopped
+
+  online-platform:
+    build: ./online-platform
+    networks:
+      - net-online
+      - net-gateway
+    environment:
+      PORT: "3000"
+      PROXY2_URL: http://proxy2:4000
+      JWT_SECRET: ${JWT_SECRET:-changeme-shared-secret}
+    depends_on:
+      - proxy2
+    restart: unless-stopped
+
+  atencion:
+    build: ./apps/atencion
+    networks:
+      - net-atencion
+      - net-gateway
+    environment:
+      DEPARTMENT: atencion
+      PROXY2_URL: http://proxy2:4000
+    stdin_open: true
+    tty: true
+    depends_on:
+      - proxy2
+    restart: unless-stopped
+
+  rrhh:
+    build: ./apps/rrhh
+    networks:
+      - net-rrhh
+      - net-gateway
+    environment:
+      DEPARTMENT: rrhh
+      PROXY2_URL: http://proxy2:4000
+    stdin_open: true
+    tty: true
+    depends_on:
+      - proxy2
+    restart: unless-stopped
+
+  inventario:
+    build: ./apps/inventario
+    networks:
+      - net-inventario
+      - net-gateway
+    environment:
+      DEPARTMENT: inventario
+      PROXY2_URL: http://proxy2:4000
+    stdin_open: true
+    tty: true
+    depends_on:
+      - proxy2
+    restart: unless-stopped
+
+  proxy2:
+    build: ./proxy2
+    networks:
+      net-gateway:
+        ipv4_address: 172.16.4.10
+      net-servers:
+        ipv4_address: 172.20.0.10
+    environment:
+      PORT: "4000"
+      LDAP_URL: ldap://openldap:1389
+      LDAP_BASE_DN: dc=empresa,dc=local
+      LDAP_ADMIN_DN: cn=admin,dc=empresa,dc=local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin-secret}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: app_user
+      DB_PASSWORD: ${DB_PASSWORD:-app-secret}
+      DB_NAME: empresa
+      JWT_SECRET: ${JWT_SECRET:-changeme-shared-secret}
+    depends_on:
+      - openldap
+      - db
+    restart: unless-stopped
+
+  openldap:
+    image: bitnamilegacy/openldap:2.6.10-debian-12-r4
+    networks:
+      net-servers:
+        ipv4_address: 172.20.0.20
+    environment:
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin-secret}
+      LDAP_ROOT: dc=empresa,dc=local
+      LDAP_ENABLE_TLS: "no"
+      LDAP_SKIP_DEFAULT_TREE: "yes"
+      LDAP_CUSTOM_LDIF_DIR: /ldifs
+    volumes:
+      - ./openldap/bootstrap:/ldifs:ro
+      - ldap-data:/bitnami/openldap
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    networks:
+      net-servers:
+        ipv4_address: 172.20.0.30
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-app-secret}
+      POSTGRES_DB: empresa
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  ldap-data:
+  db-data:
