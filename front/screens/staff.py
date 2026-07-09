@@ -265,7 +265,7 @@ class StaffScreen(Screen):
                     "nombre": tab.query_one("#rrhh-nombre", Input).value.strip(),
                     "cargo": tab.query_one("#rrhh-cargo", Select).value,
                 }
-                if not all(data.values()) or data["cargo"] == Select.BLANK:
+                if not all([data["cedula"], data["nombre"]]) or not isinstance(data["cargo"], str):
                     self.notify("Faltan campos", severity="error")
                     return
                 try:
@@ -281,7 +281,7 @@ class StaffScreen(Screen):
                     nombre = tab.query_one("#rrhh-nombre", Input).value.strip()
                     cargo = tab.query_one("#rrhh-cargo", Select).value
                     if nombre: data["nombre"] = nombre
-                    if cargo != Select.BLANK: data["cargo"] = cargo
+                    if isinstance(cargo, str): data["cargo"] = cargo
                     try:
                         await self.app.api.update_record("rrhh", rec_id, data)
                         self.notify("Empleado actualizado")
@@ -352,7 +352,7 @@ class StaffScreen(Screen):
                 if not data["cliente"] or not data["asunto"]:
                     self.notify("Falta cliente o asunto", severity="error")
                     return
-                if data["estado"] == Select.BLANK:
+                if not isinstance(data["estado"], str):
                     data["estado"] = "abierto"
                 try:
                     await self.app.api.create_record("atencion", data)
@@ -369,7 +369,7 @@ class StaffScreen(Screen):
                     est = tab.query_one("#atn-estado", Select).value
                     if cli: data["cliente"] = cli
                     if asu: data["asunto"] = asu
-                    if est != Select.BLANK: data["estado"] = est
+                    if isinstance(est, str): data["estado"] = est
                     try:
                         await self.app.api.update_record("atencion", rec_id, data)
                         self.notify("Ticket actualizado")
@@ -395,7 +395,7 @@ class StaffScreen(Screen):
                 rec_id = self._get_selected_id(tab)
                 if rec_id:
                     est = tab.query_one("#ped-estado", Select).value
-                    if est == Select.BLANK:
+                    if not isinstance(est, str):
                         self.notify("Selecciona un estado", severity="error")
                         return
                     try:
