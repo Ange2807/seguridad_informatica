@@ -13,6 +13,7 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Autentica usuarios LDAP, verifica su grupo y emite un JWT de sesión.
 app.post("/auth/login", async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
@@ -31,6 +32,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// Crea una cuenta de invitado en el almacenamiento local de proxy2.
 app.post("/api/guest/register", async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
@@ -44,6 +46,7 @@ app.post("/api/guest/register", async (req, res) => {
   }
 });
 
+// Valida credenciales de invitado y devuelve un JWT para la plataforma pública.
 app.post("/api/guest/login", async (req, res) => {
   const { username, password } = req.body || {};
   const user = await verifyGuest(username, password);
@@ -54,6 +57,7 @@ app.post("/api/guest/login", async (req, res) => {
   res.json({ token });
 });
 
+// Registra una cuenta interna vinculada a una cédula ya cargada en la tabla employees.
 app.post("/api/staff/register", async (req, res) => {
   const { cedula, username, password } = req.body || {};
   if (!cedula || !username || !password) {
@@ -67,6 +71,7 @@ app.post("/api/staff/register", async (req, res) => {
   }
 });
 
+// Inicia sesión de personal auto-registrado y devuelve un JWT con su cargo como rol.
 app.post("/api/staff/login", async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
@@ -80,6 +85,7 @@ app.post("/api/staff/login", async (req, res) => {
   res.json({ token, role: account.cargo, nombre: account.nombre });
 });
 
+// Middleware que extrae y valida el JWT enviado en la cabecera Authorization.
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -92,16 +98,19 @@ function auth(req, res, next) {
   }
 }
 
+// Comprueba si un rol tiene un permiso concreto según roles.json.
 function hasPermission(role, permission) {
   const roleDef = roles[role];
   return Boolean(roleDef && roleDef.permissions.includes(permission));
 }
 
+// Devuelve el catálogo público de productos con búsqueda opcional.
 app.get("/api/public/catalog", async (req, res) => {
   const rows = await db.publicCatalog(req.query.q);
   res.json(rows);
 });
 
+// Procesa el checkout público, valida permisos y crea un pedido real.
 app.post("/api/public/orders", auth, async (req, res) => {
   if (!hasPermission(req.user.role, "checkout")) {
     return res.status(403).json({ error: "permiso denegado" });
@@ -114,6 +123,7 @@ app.post("/api/public/orders", auth, async (req, res) => {
   }
 });
 
+// Devuelve los pedidos propios del usuario autenticado.
 app.get("/api/public/orders/mine", auth, async (req, res) => {
   if (!hasPermission(req.user.role, "checkout")) {
     return res.status(403).json({ error: "permiso denegado" });
@@ -122,6 +132,7 @@ app.get("/api/public/orders/mine", auth, async (req, res) => {
   res.json(rows);
 });
 
+// Lista los registros de un departamento si el rol tiene permiso de lectura.
 app.get("/api/:department", auth, async (req, res) => {
   const { department } = req.params;
   if (!hasPermission(req.user.role, `read:${department}`)) {
@@ -135,6 +146,7 @@ app.get("/api/:department", auth, async (req, res) => {
   }
 });
 
+// Crea un registro de un departamento, excepto pedidos que solo nacen del checkout.
 app.post("/api/:department", auth, async (req, res) => {
   const { department } = req.params;
   if (department === "pedidos") {
@@ -151,6 +163,7 @@ app.post("/api/:department", auth, async (req, res) => {
   }
 });
 
+// Actualiza un registro de un departamento con control de permisos por rol.
 app.put("/api/:department/:id", auth, async (req, res) => {
   const { department, id } = req.params;
   if (!hasPermission(req.user.role, `write:${department}`)) {
@@ -164,6 +177,7 @@ app.put("/api/:department/:id", auth, async (req, res) => {
   }
 });
 
+// Elimina un registro de un departamento, excepto pedidos y rrhh por regla de negocio.
 app.delete("/api/:department/:id", auth, async (req, res) => {
   const { department, id } = req.params;
   if (department === "pedidos") {
@@ -183,6 +197,7 @@ app.delete("/api/:department/:id", auth, async (req, res) => {
   }
 });
 
+// Endpoint simple para comprobar que proxy2 está vivo.
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 4000;

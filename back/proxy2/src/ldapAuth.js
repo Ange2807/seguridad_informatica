@@ -1,5 +1,6 @@
 const ldap = require("ldapjs");
 
+// Intenta hacer bind en LDAP con las credenciales del usuario.
 function bindAsUser(username, password) {
   return new Promise((resolve, reject) => {
     const client = ldap.createClient({ url: process.env.LDAP_URL });
@@ -13,6 +14,7 @@ function bindAsUser(username, password) {
   });
 }
 
+// Busca el grupo LDAP del usuario y devuelve su cn como rol.
 function findRole(username) {
   return new Promise((resolve, reject) => {
     const client = ldap.createClient({ url: process.env.LDAP_URL });

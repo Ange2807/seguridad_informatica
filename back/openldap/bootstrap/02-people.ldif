@@ -1,3 +1,4 @@
+## Usuarios LDAP semilla del personal interno.
 dn: uid=ana,ou=people,dc=empresa,dc=local
 objectClass: inetOrgPerson
 uid: ana
@@ -5,6 +6,7 @@ cn: Ana Gomez
 sn: Gomez
 userPassword: Password123
 
+## Usuario de RRHH para pruebas de autenticación LDAP.
 dn: uid=carlos,ou=people,dc=empresa,dc=local
 objectClass: inetOrgPerson
 uid: carlos
@@ -12,6 +14,7 @@ cn: Carlos Perez
 sn: Perez
 userPassword: Password123
 
+## Usuario de Inventario para pruebas de autenticación LDAP.
 dn: uid=maria,ou=people,dc=empresa,dc=local
 objectClass: inetOrgPerson
 uid: maria

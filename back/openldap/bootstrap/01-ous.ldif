@@ -1,13 +1,16 @@
+## Base del directorio LDAP de la empresa.
 dn: dc=empresa,dc=local
 objectClass: dcObject
 objectClass: organization
 dc: empresa
 o: Empresa
 
+## Unidad organizativa donde se guardan las personas.
 dn: ou=people,dc=empresa,dc=local
 objectClass: organizationalUnit
 ou: people
 
+## Unidad organizativa donde se guardan los grupos de acceso.
 dn: ou=groups,dc=empresa,dc=local
 objectClass: organizationalUnit
 ou: groups

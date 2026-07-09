@@ -4,15 +4,18 @@ const bcrypt = require("bcryptjs");
 
 const USERS_FILE = path.join(__dirname, "users.json");
 
+// Lee el archivo local donde se guardan las cuentas de invitados.
 function readUsers() {
   const raw = fs.readFileSync(USERS_FILE, "utf-8");
   return JSON.parse(raw);
 }
 
+// Sobrescribe el archivo local con la lista actualizada de invitados.
 function writeUsers(data) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
 }
 
+// Registra un invitado nuevo con contraseña hasheada y rol guest.
 async function registerGuest(username, password) {
   const data = readUsers();
   if (data.users.find((u) => u.user_na === username)) {
@@ -24,6 +27,7 @@ async function registerGuest(username, password) {
   writeUsers(data);
 }
 
+// Comprueba si un invitado existe y si su contraseña coincide.
 async function verifyGuest(username, password) {
   const data = readUsers();
   const user = data.users.find((u) => u.user_na === username);

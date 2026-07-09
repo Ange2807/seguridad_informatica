@@ -25,11 +25,13 @@ class FormModal(ModalScreen):
     #form-box Input { margin-bottom: 1; }
     """
 
+    # Guarda el título del formulario y los valores iniciales si existen.
     def __init__(self, form_title, initial=None):
         super().__init__()
         self.form_title = form_title
         self.initial = initial or {}
 
+    # Construye el modal para crear o editar productos.
     def compose(self) -> ComposeResult:
         with Vertical(id="form-box"):
             yield Label(self.form_title)
@@ -40,10 +42,12 @@ class FormModal(ModalScreen):
                 yield Button("Cancelar", id="cancel", variant="error")
 
     @on(Button.Pressed, "#save")
+    # Devuelve los datos del formulario al confirmar.
     def save(self) -> None:
         data = {key: self.query_one(f"#field-{key}", Input).value for key, _ in FIELDS}
         self.dismiss(data)
 
+    # Cierra el formulario sin guardar cambios.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -55,10 +59,12 @@ class ConfirmModal(ModalScreen):
     #confirm-box { width: 46; border: round $error; padding: 1 2; background: $surface; }
     """
 
+    # Guarda el mensaje de confirmación antes de borrar un producto.
     def __init__(self, message):
         super().__init__()
         self.message = message
 
+    # Construye la ventana de confirmación para eliminar.
     def compose(self) -> ComposeResult:
         with Vertical(id="confirm-box"):
             yield Label(self.message)
@@ -66,10 +72,12 @@ class ConfirmModal(ModalScreen):
                 yield Button("Eliminar", id="yes", variant="error")
                 yield Button("Cancelar", id="no")
 
+    # Confirma la eliminación.
     @on(Button.Pressed, "#yes")
     def yes(self) -> None:
         self.dismiss(True)
 
+    # Cancela la eliminación.
     @on(Button.Pressed, "#no")
     def no(self) -> None:
         self.dismiss(False)
@@ -84,6 +92,7 @@ class RegisterModal(ModalScreen):
     #register-status { height: 1; color: $error; }
     """
 
+    # Construye el modal de auto-registro por cédula.
     def compose(self) -> ComposeResult:
         with Vertical(id="register-box"):
             yield Label("Registro de nuevo usuario")
@@ -99,6 +108,7 @@ class RegisterModal(ModalScreen):
                 yield Button("Registrarme", id="submit", variant="success")
                 yield Button("Cancelar", id="cancel", variant="error")
 
+    # Envía la solicitud de registro de cuenta interna al backend.
     @on(Button.Pressed, "#submit")
     async def submit(self) -> None:
         cedula = self.query_one("#reg-cedula", Input).value
@@ -124,6 +134,7 @@ class RegisterModal(ModalScreen):
             return
         self.dismiss({"username": username, "cargo": data.get("cargo")})
 
+    # Cierra el modal de registro sin crear usuario.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -146,11 +157,13 @@ class DepartmentApp(App):
         ("r", "refresh", "Refrescar"),
     ]
 
+    # Inicializa el estado de la app de Inventario.
     def __init__(self):
         super().__init__()
         self.token = None
         self.current_records = []
 
+    # Dibuja la pantalla de login inicial.
     def compose(self) -> ComposeResult:
         yield Header(name=TITLE)
         with Vertical(id="login-box"):
@@ -163,20 +176,25 @@ class DepartmentApp(App):
             yield Static("", id="status")
         yield Footer()
 
+    # Ajusta el título y enfoca el campo usuario al arrancar.
     def on_mount(self) -> None:
         self.title = TITLE
         self.query_one("#username", Input).focus()
 
+    # Mueve el foco a la contraseña cuando se completa el usuario.
     @on(Input.Submitted, "#username")
     def focus_password(self) -> None:
         self.query_one("#password", Input).focus()
 
+    # Ejecuta el login al pulsar el botón.
     @on(Button.Pressed, "#login-btn")
     async def login_button_pressed(self) -> None:
         await self.handle_login()
 
+    # Abre el modal de registro y prellena el usuario si fue exitoso.
     @on(Button.Pressed, "#register-btn")
     def open_register(self) -> None:
+        # Copia el usuario recién creado al formulario de login.
         def handle_result(result):
             if result:
                 self.query_one("#username", Input).value = result["username"]
@@ -186,6 +204,7 @@ class DepartmentApp(App):
 
         self.push_screen(RegisterModal(), handle_result)
 
+    # Intenta autenticación LDAP y, si falla, login por cuenta auto-registrada.
     @on(Input.Submitted, "#password")
     async def handle_login(self) -> None:
         username = self.query_one("#username", Input).value
@@ -214,6 +233,7 @@ class DepartmentApp(App):
             return
         await self.show_main()
 
+    # Reemplaza el login por la vista principal con buscador y tabla.
     async def show_main(self) -> None:
         await self.query_one("#login-box").remove()
         main = Vertical(id="main")
@@ -225,16 +245,19 @@ class DepartmentApp(App):
         await self.load_data()
         self.query_one("#search", Input).focus()
 
+    # Recarga los datos cuando el usuario confirma la búsqueda.
     @on(Input.Submitted, "#search")
     async def on_search(self) -> None:
         await self.load_data()
 
+    # Limpia la búsqueda y vuelve a pedir todos los productos.
     async def action_refresh(self) -> None:
         if not self.token:
             return
         self.query_one("#search", Input).value = ""
         await self.load_data()
 
+    # Consulta el catálogo de inventario y pinta la tabla.
     async def load_data(self) -> None:
         if not self.token:
             return
@@ -258,6 +281,7 @@ class DepartmentApp(App):
         else:
             table.add_row("-", *["sin registros" for _ in columns])
 
+    # Devuelve el producto actualmente seleccionado.
     def selected_record(self):
         table = self.query_one("#table", DataTable)
         if table.cursor_row is None or table.cursor_row < 0:
@@ -266,16 +290,19 @@ class DepartmentApp(App):
             return None
         return self.current_records[table.cursor_row]
 
+    # Abre el formulario para crear un producto nuevo.
     def action_new_record(self) -> None:
         if not self.token:
             return
 
+        # Envía el producto nuevo cuando el modal devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_new(data))
 
         self.push_screen(FormModal(f"Nuevo — {TITLE}"), handle_result)
 
+    # Inserta un producto nuevo en la base de datos.
     async def submit_new(self, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.post(
@@ -287,18 +314,21 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_data()
 
+    # Abre el formulario para editar el producto seleccionado.
     def action_edit_record(self) -> None:
         record = self.selected_record()
         if not record:
             self.notify("Selecciona un registro primero", severity="warning")
             return
 
+        # Envía la edición al backend cuando el modal devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_edit(record["id"], data))
 
         self.push_screen(FormModal(f"Editar — {TITLE}", initial=record), handle_result)
 
+    # Actualiza un producto existente.
     async def submit_edit(self, record_id, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.put(
@@ -310,18 +340,21 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_data()
 
+    # Abre la confirmación antes de borrar un producto.
     def action_delete_record(self) -> None:
         record = self.selected_record()
         if not record:
             self.notify("Selecciona un registro primero", severity="warning")
             return
 
+        # Ejecuta el borrado solo si el usuario confirma.
         def handle_result(confirmed):
             if confirmed:
                 self.run_worker(self.submit_delete(record["id"]))
 
         self.push_screen(ConfirmModal(f"¿Eliminar registro #{record['id']}?"), handle_result)
 
+    # Elimina un producto de la base de datos.
     async def submit_delete(self, record_id) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.delete(
