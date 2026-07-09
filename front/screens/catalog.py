@@ -17,7 +17,7 @@ class CatalogScreen(Screen):
         ("o", "show_orders", "Mis Pedidos"),
         ("l", "do_logout", "Cerrar Sesión"),
         ("s", "focus_search", "Buscar"),
-        ("q", "quit", "Salir"),
+        ("ctrl+q", "quit", "Salir"),
     ]
 
     def compose(self) -> ComposeResult:

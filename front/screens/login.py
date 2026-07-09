@@ -10,7 +10,7 @@ from textual.containers import Vertical, Horizontal, Center
 class LoginScreen(Screen):
     """Pantalla de autenticación con pestañas Guest / Staff."""
 
-    BINDINGS = [("q", "quit", "Salir")]
+    BINDINGS = [("ctrl+q", "quit", "Salir")]
 
     def compose(self) -> ComposeResult:
         yield Header()

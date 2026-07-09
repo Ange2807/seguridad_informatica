@@ -21,7 +21,7 @@ class OrdersScreen(Screen):
         ("c", "go_catalog", "Catálogo"),
         ("r", "refresh_orders", "Actualizar"),
         ("l", "do_logout", "Cerrar Sesión"),
-        ("q", "quit", "Salir"),
+        ("ctrl+q", "quit", "Salir"),
     ]
 
     def compose(self) -> ComposeResult:

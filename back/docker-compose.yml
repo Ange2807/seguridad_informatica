@@ -107,6 +107,19 @@ services:
       - proxy2
     restart: unless-stopped
 
+  online-tui:
+    build: ../front
+    networks:
+      - net-online
+      - net-gateway
+    environment:
+      PROXY2_URL: http://proxy2:4000
+    stdin_open: true
+    tty: true
+    depends_on:
+      - proxy2
+    restart: unless-stopped
+
   proxy2:
     build: ./proxy2
     networks:
