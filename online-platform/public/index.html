@@ -94,7 +94,7 @@ function showMsg(text, ok) {
 
 async function loadCatalog(query) {
   const qs = query ? `?q=${encodeURIComponent(query)}` : '';
-  const res = await fetch(`/api/catalog${qs}`);
+  const res = await fetch(`/api/public/catalog${qs}`);
   const rows = await res.json();
   const body = document.getElementById('catalog-body');
   body.innerHTML = rows.map(r => `
@@ -146,7 +146,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     return;
   }
   const items = cart.map(item => ({ id: item.id, cantidad: item.cantidad }));
-  const res = await fetch('/api/checkout', {
+  const res = await fetch('/api/public/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
     body: JSON.stringify({ items })
@@ -165,7 +165,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
 
 async function loadMyOrders() {
   if (!authToken) return;
-  const res = await fetch('/api/my-orders', {
+  const res = await fetch('/api/public/orders/mine', {
     headers: { Authorization: `Bearer ${authToken}` }
   });
   const orders = await res.json();
@@ -193,7 +193,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   e.preventDefault();
   const username = document.getElementById('reg-user').value;
   const password = document.getElementById('reg-pass').value;
-  const res = await fetch('/api/register', {
+  const res = await fetch('/api/guest/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
@@ -206,7 +206,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('login-user').value;
   const password = document.getElementById('login-pass').value;
-  const res = await fetch('/api/login', {
+  const res = await fetch('/api/guest/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })

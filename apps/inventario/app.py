@@ -75,6 +75,60 @@ class ConfirmModal(ModalScreen):
         self.dismiss(False)
 
 
+class RegisterModal(ModalScreen):
+    CSS = """
+    RegisterModal { align: center middle; }
+    #register-box { width: 58; border: round $accent; padding: 1 2; background: $surface; }
+    #register-box Input { margin-bottom: 1; }
+    #register-hint { color: $text-muted; margin-bottom: 1; }
+    #register-status { height: 1; color: $error; }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="register-box"):
+            yield Label("Registro de nuevo usuario")
+            yield Label(
+                "Tu cédula debe existir en la tabla de empleados (la carga RRHH o Administrador).",
+                id="register-hint",
+            )
+            yield Input(placeholder="cédula", id="reg-cedula")
+            yield Input(placeholder="usuario deseado", id="reg-username")
+            yield Input(placeholder="contraseña", password=True, id="reg-password")
+            yield Static("", id="register-status")
+            with Horizontal():
+                yield Button("Registrarme", id="submit", variant="success")
+                yield Button("Cancelar", id="cancel", variant="error")
+
+    @on(Button.Pressed, "#submit")
+    async def submit(self) -> None:
+        cedula = self.query_one("#reg-cedula", Input).value
+        username = self.query_one("#reg-username", Input).value
+        password = self.query_one("#reg-password", Input).value
+        status = self.query_one("#register-status", Static)
+        if not cedula or not username or not password:
+            status.update("Completa cédula, usuario y contraseña.")
+            return
+        status.update("Registrando...")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(
+                    f"{PROXY2_URL}/api/staff/register",
+                    json={"cedula": cedula, "username": username, "password": password},
+                )
+                data = res.json()
+                if res.status_code >= 400:
+                    status.update(f"Error: {data.get('error', 'no se pudo registrar')}")
+                    return
+        except httpx.HTTPError as exc:
+            status.update(f"Error de red: {exc}")
+            return
+        self.dismiss({"username": username, "cargo": data.get("cargo")})
+
+    @on(Button.Pressed, "#cancel")
+    def cancel(self) -> None:
+        self.dismiss(None)
+
+
 class DepartmentApp(App):
     CSS = """
     Screen { align: center middle; }
@@ -103,6 +157,9 @@ class DepartmentApp(App):
             yield Label(f"{TITLE} — inicio de sesión")
             yield Input(placeholder="usuario", id="username")
             yield Input(placeholder="contraseña", password=True, id="password")
+            with Horizontal():
+                yield Button("Iniciar sesión", id="login-btn", variant="success")
+                yield Button("Registrarme", id="register-btn")
             yield Static("", id="status")
         yield Footer()
 
@@ -113,6 +170,21 @@ class DepartmentApp(App):
     @on(Input.Submitted, "#username")
     def focus_password(self) -> None:
         self.query_one("#password", Input).focus()
+
+    @on(Button.Pressed, "#login-btn")
+    async def login_button_pressed(self) -> None:
+        await self.handle_login()
+
+    @on(Button.Pressed, "#register-btn")
+    def open_register(self) -> None:
+        def handle_result(result):
+            if result:
+                self.query_one("#username", Input).value = result["username"]
+                self.query_one("#status", Static).update(
+                    f"Cuenta creada (cargo: {result.get('cargo')}). Ya puedes iniciar sesión."
+                )
+
+        self.push_screen(RegisterModal(), handle_result)
 
     @on(Input.Submitted, "#password")
     async def handle_login(self) -> None:
@@ -128,8 +200,14 @@ class DepartmentApp(App):
                 )
                 login_data = login_res.json()
                 if login_res.status_code != 200:
-                    status.update(f"Error: {login_data.get('error', 'credenciales inválidas')}")
-                    return
+                    staff_res = await client.post(
+                        f"{PROXY2_URL}/api/staff/login",
+                        json={"username": username, "password": password},
+                    )
+                    login_data = staff_res.json()
+                    if staff_res.status_code != 200:
+                        status.update(f"Error: {login_data.get('error', 'credenciales inválidas')}")
+                        return
                 self.token = login_data["token"]
         except httpx.HTTPError as exc:
             status.update(f"Error de red: {exc}")

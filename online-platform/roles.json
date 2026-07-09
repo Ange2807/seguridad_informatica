@@ -1,5 +1,0 @@
-{
-  "guest": {
-    "permissions": ["read:catalog", "checkout"]
-  }
-}

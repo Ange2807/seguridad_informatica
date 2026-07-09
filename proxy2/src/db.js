@@ -16,8 +16,8 @@ const DEPARTMENTS = {
   },
   rrhh: {
     table: "employees",
-    searchColumns: ["nombre", "puesto", "area"],
-    fields: ["nombre", "puesto", "area"],
+    searchColumns: ["cedula", "nombre", "cargo"],
+    fields: ["cedula", "nombre", "cargo"],
   },
   inventario: {
     table: "inventory",
@@ -182,6 +182,7 @@ async function createOrder(username, items) {
 }
 
 module.exports = {
+  pool,
   listDepartment,
   createRecord,
   updateRecord,

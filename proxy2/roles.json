@@ -8,6 +8,14 @@
   "inventario": {
     "permissions": ["read:inventario", "write:inventario"]
   },
+  "administrador": {
+    "permissions": [
+      "read:atencion", "write:atencion",
+      "read:rrhh", "write:rrhh",
+      "read:inventario", "write:inventario",
+      "read:pedidos", "write:pedidos"
+    ]
+  },
   "guest": {
     "permissions": ["read:catalog", "checkout"]
   }

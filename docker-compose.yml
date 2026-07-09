@@ -48,23 +48,21 @@ services:
       net-dmz:
         ipv4_address: 10.0.0.10
       net-online:
+      net-gateway:
+        ipv4_address: 172.16.4.20
     ports:
       - "443:443"
     depends_on:
       - online-platform
+      - proxy2
     restart: unless-stopped
 
   online-platform:
     build: ./online-platform
     networks:
       - net-online
-      - net-gateway
     environment:
       PORT: "3000"
-      PROXY2_URL: http://proxy2:4000
-      JWT_SECRET: ${JWT_SECRET:-changeme-shared-secret}
-    depends_on:
-      - proxy2
     restart: unless-stopped
 
   atencion:

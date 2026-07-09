@@ -1,0 +1,171 @@
+==================================================================
+DATOS DE PRUEBA — Proyecto #2 (Red por departamentos / tienda)
+==================================================================
+Generado junto con el seed de db/init.sql y proxy2/src/users.json.
+Si corres "docker compose down -v" y vuelves a levantar, estos datos
+se recargan automáticamente (son los INSERT del init.sql).
+
+
+------------------------------------------------------------------
+1) USUARIOS — PERSONAL INTERNO (LDAP, ya con cuenta)
+------------------------------------------------------------------
+Se usan en el login normal de cada app (docker attach).
+
+  usuario   contraseña     rol/cargo     app donde entra
+  --------  -------------  ------------  -------------------------
+  ana       Password123    atencion      apps/atencion
+  carlos    Password123    rrhh          apps/rrhh
+  maria     Password123    inventario    apps/inventario
+
+
+------------------------------------------------------------------
+2) USUARIOS — PERSONAL AUTO-REGISTRADO (cédula, ya con cuenta)
+------------------------------------------------------------------
+Ya pasaron por "Registrarme" de antemano. Sirven para entrar sin
+tener que registrar nada primero.
+
+  usuario   contraseña     rol/cargo     cédula        app
+  --------  -------------  ------------  ------------  --------------
+  sofia     Password123    atencion      V-00000008    apps/atencion
+  diego     Password123    inventario    V-00000009    apps/inventario
+
+
+------------------------------------------------------------------
+3) EMPLEADOS SIN CUENTA TODAVÍA (para probar "Registrarme")
+------------------------------------------------------------------
+Están en la tabla employees (los cargó RRHH/Admin) pero NADIE se ha
+registrado con esa cédula. Úsalas para probar el auto-registro real:
+abre cualquier app -> "Registrarme" -> cédula + usuario + contraseña
+que tú elijas -> el rol queda fijado según el cargo de la tabla.
+
+  cédula        nombre              cargo (rol que le va a tocar)
+  ------------  ------------------  ------------------------------
+  V-00000004    Admin Principal     administrador (superusuario)
+  V-00000005    Jorge Diaz          inventario
+  V-00000006    Lucia Fernandez     atencion
+  V-00000007    Pedro Ramirez       rrhh
+
+Prueba de "cédula no autorizada" (debe RECHAZAR el registro):
+  cualquier cédula que no esté en esta lista, ej. V-99999999
+
+
+------------------------------------------------------------------
+4) CUENTA DE INVITADO (tienda pública, ya registrada)
+------------------------------------------------------------------
+  usuario         contraseña
+  --------------  ---------------
+  cliente_demo    DemoCliente123
+
+Ya tiene 2 pedidos hechos (ver sección 7). Puedes usarla para
+probar "Mis pedidos" sin comprar nada primero, o registrar una
+cuenta nueva desde el botón "Registrarme" de la web (no necesita
+cédula, es sólo para clientes externos).
+
+
+------------------------------------------------------------------
+5) PRODUCTOS (tabla inventory — visibles en catálogo e Inventario)
+------------------------------------------------------------------
+  producto              cantidad   ubicación   precio
+  ---------------------  --------  ----------  --------
+  Laptop 14"             41        Bodega A    $549.99
+  Monitor 24"            75        Bodega A    $189.50
+  Teclado mecanico       120       Bodega B    $39.90
+  Mouse inalambrico      199       Bodega B    $15.99
+  Impresora laser        8         Bodega C    $259.00   (stock bajo)
+  Silla ergonomica       5         Bodega C    $189.90   (stock bajo)
+  Audifonos bluetooth    59        Bodega B    $45.50
+  Webcam HD              33        Bodega B    $29.99
+  Router wifi            3         Bodega C    $79.90    (stock bajo)
+  Disco SSD 1TB          27        Bodega A    $89.00
+
+(Las cantidades de Laptop/Mouse/Webcam/Audifonos ya están descontadas
+por los 2 pedidos precargados de cliente_demo.)
+
+Prueba sugerida: busca "Impresora", "Router" o "Silla" para ver
+productos con poco stock; intenta comprar más cantidad de la que
+hay para ver el rechazo por falta de stock.
+
+
+------------------------------------------------------------------
+6) TICKETS (tabla tickets — Atención al Cliente)
+------------------------------------------------------------------
+  cliente                asunto                              estado
+  ----------------------  ----------------------------------  -----------
+  Comercial ACME          Factura duplicada                   abierto
+  Distribuidora Sol       Retraso en entrega                  en progreso
+  Tienda Norte            Consulta de garantia                cerrado
+  Ferreteria Union        Producto llego danado                abierto
+  Panaderia Central       Solicita factura fiscal              en progreso
+  Autoservicio Lopez      Cambio de direccion de envio         abierto
+  Libreria Moderna        Reembolso por cancelacion            cerrado
+  Farmacia San Jose       Duda sobre metodo de pago             cerrado
+
+
+------------------------------------------------------------------
+7) PEDIDOS PRECARGADOS (tabla orders — checkout de cliente_demo)
+------------------------------------------------------------------
+  Pedido #1 — estado: enviado — total: $605.98 (hace 3 días)
+    1x Laptop 14"           $549.99
+    1x Mouse inalambrico    $15.99
+    1x Webcam HD            $29.99
+
+  Pedido #2 — estado: pendiente — total: $45.50 (hace 1 día)
+    1x Audifonos bluetooth  $45.50
+
+Prueba sugerida: entra a la app de Atención con ana o sofia, pestaña
+"Pedidos", cambia el estado del Pedido #2 (por ejemplo a "enviado")
+con la tecla "e". Luego entra a la web como cliente_demo y confirma
+que "Mis pedidos" refleja el nuevo estado.
+
+
+------------------------------------------------------------------
+8) CÓMO PROBAR CADA FUNCIÓN DEL PROYECTO (checklist)
+------------------------------------------------------------------
+[ ] Levantar el proyecto:            docker compose up -d --build
+[ ] Ver los 8 contenedores arriba:   docker compose ps
+
+Plataforma pública (https://localhost):
+[ ] Buscar un producto en el catálogo (ej. "laptop")
+[ ] Iniciar sesión como cliente_demo / DemoCliente123
+[ ] Ver "Mis pedidos" (2 pedidos ya cargados)
+[ ] Registrar una cuenta de invitado nueva y comprar algo (checkout)
+[ ] Confirmar que el stock del producto baja después de comprar
+
+App de Inventario (docker attach seguridad_informatica-inventario-1):
+[ ] Login: maria / Password123  (o diego / Password123)
+[ ] Buscar "router" (stock bajo)
+[ ] Crear un producto nuevo (tecla n)
+[ ] Editar cantidad/precio de un producto (tecla e)
+[ ] Eliminar un producto (tecla d)
+
+App de RRHH (docker attach seguridad_informatica-rrhh-1):
+[ ] Login: carlos / Password123
+[ ] Buscar por cédula o nombre
+[ ] Cargar un empleado nuevo (tecla n) — cédula, nombre, cargo
+[ ] Editar el cargo de un empleado existente (tecla e)
+[ ] Confirmar que NO existe la opción de eliminar (bloqueado a propósito)
+
+App de Atención (docker attach seguridad_informatica-atencion-1):
+[ ] Login: ana / Password123  (o sofia / Password123)
+[ ] Pestaña Tickets: crear, editar, eliminar un ticket
+[ ] Pestaña Pedidos (Tab): ver los 2 pedidos de cliente_demo,
+    cambiar el estado del Pedido #2
+
+Auto-registro por cédula (en cualquiera de las 3 apps, botón
+"Registrarme" en la pantalla de login):
+[ ] Registrar V-00000005 (Jorge Diaz) con un usuario/contraseña
+    tuyo -> debe quedar con rol inventario
+[ ] Intentar registrar una cédula inventada (ej. V-99999999)
+    -> debe RECHAZAR el registro
+[ ] Registrar V-00000004 (Admin Principal) -> entra como
+    administrador: probar que ese usuario puede acceder desde las
+    3 apps de departamento (atención, rrhh, inventario) sin que le
+    nieguen el permiso
+
+Seguridad / segmentación de red:
+[ ] Confirmar que el único puerto publicado es 443:
+      docker compose ps   (solo proxy1 muestra PORTS)
+[ ] Confirmar que proxy1 no llega a la base de datos directo:
+      docker inspect seguridad_informatica-proxy1-1 --format
+      "{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}"
+      (no debe aparecer net-servers)

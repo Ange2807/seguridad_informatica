@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "user_na": "cliente_demo",
+      "user_pw": "$2a$10$xWlhAp7By9VgewuqyEfqGOyXXDrksZK9MwFgQDVus6Ok3XSf6RWJy",
+      "roles": ["guest"]
+    }
+  ]
+}

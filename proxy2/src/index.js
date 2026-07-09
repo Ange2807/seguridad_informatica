@@ -3,6 +3,8 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const roles = require("../roles.json");
 const { bindAsUser, findRole } = require("./ldapAuth");
+const { registerGuest, verifyGuest } = require("./guestAuth");
+const { registerStaff, verifyStaff } = require("./staffAuth");
 const db = require("./db");
 
 const app = express();
@@ -27,6 +29,55 @@ app.post("/auth/login", async (req, res) => {
   } catch (err) {
     res.status(401).json({ error: "credenciales inválidas" });
   }
+});
+
+app.post("/api/guest/register", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: "usuario y contraseña requeridos" });
+  }
+  try {
+    await registerGuest(username, password);
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
+app.post("/api/guest/login", async (req, res) => {
+  const { username, password } = req.body || {};
+  const user = await verifyGuest(username, password);
+  if (!user) return res.status(401).json({ error: "credenciales inválidas" });
+  const token = jwt.sign({ sub: user.user_na, role: user.roles[0] }, JWT_SECRET, {
+    expiresIn: "4h",
+  });
+  res.json({ token });
+});
+
+app.post("/api/staff/register", async (req, res) => {
+  const { cedula, username, password } = req.body || {};
+  if (!cedula || !username || !password) {
+    return res.status(400).json({ error: "cédula, usuario y contraseña requeridos" });
+  }
+  try {
+    const employee = await registerStaff(cedula, username, password);
+    res.status(201).json({ ok: true, nombre: employee.nombre, cargo: employee.cargo });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/staff/login", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: "usuario y contraseña requeridos" });
+  }
+  const account = await verifyStaff(username, password);
+  if (!account) return res.status(401).json({ error: "credenciales inválidas" });
+  const token = jwt.sign({ sub: account.username, role: account.cargo }, JWT_SECRET, {
+    expiresIn: "8h",
+  });
+  res.json({ token, role: account.cargo, nombre: account.nombre });
 });
 
 function auth(req, res, next) {
@@ -117,6 +168,9 @@ app.delete("/api/:department/:id", auth, async (req, res) => {
   const { department, id } = req.params;
   if (department === "pedidos") {
     return res.status(400).json({ error: "los pedidos no se pueden eliminar" });
+  }
+  if (department === "rrhh") {
+    return res.status(400).json({ error: "los empleados no se eliminan desde la app" });
   }
   if (!hasPermission(req.user.role, `write:${department}`)) {
     return res.status(403).json({ error: "permiso denegado" });
