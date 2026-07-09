@@ -236,3 +236,51 @@ DataTable > .datatable--cursor {
     width: 100%;
     padding: 4 0;
 }
+
+/* ══════════════════════════════════════════════════════
+   STAFF SCREEN
+   ══════════════════════════════════════════════════════ */
+
+#staff-wrapper {
+    width: 100%;
+    height: 1fr;
+    padding: 0 1;
+}
+
+#staff-tabs {
+    height: 1fr;
+}
+
+.dept-table {
+    height: 1fr;
+    margin: 0 0 1 0;
+    border: tall #1e293b;
+    background: #0f172a;
+}
+
+.form-row {
+    height: auto;
+    width: 100%;
+    margin: 0 0 1 0;
+}
+
+.form-row .form-input {
+    width: 1fr;
+    margin: 0 1 0 0;
+}
+
+.form-row Select {
+    width: 1fr;
+    margin: 0 1 0 0;
+}
+
+.form-actions {
+    height: 3;
+    width: 100%;
+    align: center middle;
+    margin: 1 0;
+}
+
+.form-actions Button {
+    margin: 0 1;
+}
