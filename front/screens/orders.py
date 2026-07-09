@@ -18,9 +18,9 @@ class OrdersScreen(Screen):
     """Muestra las órdenes del usuario logueado."""
 
     BINDINGS = [
-        ("c", "go_catalog", "Catálogo"),
-        ("r", "refresh_orders", "Actualizar"),
-        ("l", "do_logout", "Cerrar Sesión"),
+        ("ctrl+b", "go_catalog", "Catálogo"),
+        ("ctrl+r", "refresh_orders", "Actualizar"),
+        ("ctrl+l", "do_logout", "Cerrar Sesión"),
         ("ctrl+q", "quit", "Salir"),
     ]
 

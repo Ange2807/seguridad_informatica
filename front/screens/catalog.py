@@ -13,10 +13,10 @@ class CatalogScreen(Screen):
     """Muestra el catálogo de productos y un carrito lateral."""
 
     BINDINGS = [
-        ("a", "add_to_cart", "Añadir"),
-        ("o", "show_orders", "Mis Pedidos"),
-        ("l", "do_logout", "Cerrar Sesión"),
-        ("s", "focus_search", "Buscar"),
+        ("ctrl+a", "add_to_cart", "Añadir"),
+        ("ctrl+o", "show_orders", "Mis Pedidos"),
+        ("ctrl+l", "do_logout", "Cerrar Sesión"),
+        ("ctrl+f", "focus_search", "Buscar"),
         ("ctrl+q", "quit", "Salir"),
     ]
 
