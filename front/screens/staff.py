@@ -31,6 +31,9 @@ class BaseDeptTab(Vertical):
     def populate_table(self, table: DataTable, records: list) -> None:
         pass
 
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        pass
+
 
 # ── Pestaña RRHH ─────────────────────────────────────────
 
@@ -62,6 +65,18 @@ class RrhhTab(BaseDeptTab):
         for r in records:
             table.add_row(str(r["id"]), r["cedula"], r["nombre"], r["cargo"])
 
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.control.id == self.table_id:
+            row = event.control.get_row(event.row_key)
+            self.query_one("#rrhh-cedula", Input).value = str(row[1])
+            self.query_one("#rrhh-nombre", Input).value = str(row[2])
+            # For Select, value might not match exactly if casing is different, but we try:
+            cargo = str(row[3]).lower()
+            try:
+                self.query_one("#rrhh-cargo", Select).value = cargo
+            except:
+                pass
+
 
 # ── Pestaña Inventario ───────────────────────────────────
 
@@ -91,6 +106,14 @@ class InventarioTab(BaseDeptTab):
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["producto"], str(r["cantidad"]), f"${float(r['precio']):.2f}", r["ubicacion"])
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.control.id == self.table_id:
+            row = event.control.get_row(event.row_key)
+            self.query_one("#inv-producto", Input).value = str(row[1])
+            self.query_one("#inv-cantidad", Input).value = str(row[2])
+            self.query_one("#inv-precio", Input).value = str(row[3]).replace("$", "")
+            self.query_one("#inv-ubicacion", Input).value = str(row[4])
 
 
 # ── Pestaña Atención (Tickets) ───────────────────────────
@@ -124,6 +147,17 @@ class AtencionTab(BaseDeptTab):
         for r in records:
             table.add_row(str(r["id"]), r["cliente"], r["asunto"], r["estado"])
 
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.control.id == self.table_id:
+            row = event.control.get_row(event.row_key)
+            self.query_one("#atn-cliente", Input).value = str(row[1])
+            self.query_one("#atn-asunto", Input).value = str(row[2])
+            estado = str(row[3]).lower()
+            try:
+                self.query_one("#atn-estado", Select).value = estado
+            except:
+                pass
+
 
 # ── Pestaña Pedidos ──────────────────────────────────────
 
@@ -151,6 +185,15 @@ class PedidosTab(BaseDeptTab):
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["guest_username"], r["estado"], f"${float(r['total']):.2f}", str(r["creado_en"])[:10])
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.control.id == self.table_id:
+            row = event.control.get_row(event.row_key)
+            estado = str(row[2]).lower()
+            try:
+                self.query_one("#ped-estado", Select).value = estado
+            except:
+                pass
 
 
 # ── Pantalla Principal del Staff ─────────────────────────
