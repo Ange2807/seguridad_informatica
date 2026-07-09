@@ -125,9 +125,7 @@ docker compose up --build -d
 - Apps de departamento (sin puertos publicados):
 
 ```powershell
-docker attach seguridad_informatica-atencion-1
-docker attach seguridad_informatica-rrhh-1
-docker attach seguridad_informatica-inventario-1
+docker attach back-online-tui-1
 ```
 
 En la pantalla de login de cualquiera de las tres, el botón **"Registrarme"** pide cédula +
