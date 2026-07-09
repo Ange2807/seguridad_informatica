@@ -1,13 +1,16 @@
+## Grupo LDAP de Atención; sus miembros heredan el rol atencion.
 dn: cn=atencion,ou=groups,dc=empresa,dc=local
 objectClass: groupOfNames
 cn: atencion
 member: uid=ana,ou=people,dc=empresa,dc=local
 
+## Grupo LDAP de Recursos Humanos; su miembro obtiene el rol rrhh.
 dn: cn=rrhh,ou=groups,dc=empresa,dc=local
 objectClass: groupOfNames
 cn: rrhh
 member: uid=carlos,ou=people,dc=empresa,dc=local
 
+## Grupo LDAP de Inventario; su miembro obtiene el rol inventario.
 dn: cn=inventario,ou=groups,dc=empresa,dc=local
 objectClass: groupOfNames
 cn: inventario

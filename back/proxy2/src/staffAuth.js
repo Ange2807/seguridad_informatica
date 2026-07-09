@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { pool } = require("./db");
 
+// Busca un empleado por cédula en la tabla employees.
 async function findEmployeeByCedula(cedula) {
   const { rows } = await pool.query(
     "SELECT cedula, nombre, cargo FROM employees WHERE cedula = $1",
@@ -9,6 +10,7 @@ async function findEmployeeByCedula(cedula) {
   return rows[0] || null;
 }
 
+// Crea una cuenta interna si la cédula existe y todavía no tiene usuario.
 async function registerStaff(cedula, username, password) {
   const employee = await findEmployeeByCedula(cedula);
   if (!employee) {
@@ -36,6 +38,7 @@ async function registerStaff(cedula, username, password) {
   return employee;
 }
 
+// Verifica una cuenta interna y devuelve los datos de sesión si la contraseña coincide.
 async function verifyStaff(username, password) {
   const { rows } = await pool.query(
     `SELECT sa.username, sa.password_hash, e.cargo, e.nombre

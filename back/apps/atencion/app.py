@@ -36,11 +36,13 @@ class TicketModal(ModalScreen):
     #form-box Input { margin-bottom: 1; }
     """
 
+    # Guarda el título del formulario y, si existe, los valores iniciales.
     def __init__(self, form_title, initial=None):
         super().__init__()
         self.form_title = form_title
         self.initial = initial or {}
 
+    # Construye el formulario modal para crear o editar un ticket.
     def compose(self) -> ComposeResult:
         with Vertical(id="form-box"):
             yield Label(self.form_title)
@@ -51,10 +53,12 @@ class TicketModal(ModalScreen):
                 yield Button("Cancelar", id="cancel", variant="error")
 
     @on(Button.Pressed, "#save")
+    # Recoge los datos del formulario y devuelve el ticket al llamador.
     def save(self) -> None:
         data = {key: self.query_one(f"#field-{key}", Input).value for key, _ in TICKET_FIELDS}
         self.dismiss(data)
 
+    # Cancela el modal sin devolver datos.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -66,10 +70,12 @@ class ConfirmModal(ModalScreen):
     #confirm-box { width: 46; border: round $error; padding: 1 2; background: $surface; }
     """
 
+    # Guarda el mensaje de confirmación que se mostrará al usuario.
     def __init__(self, message):
         super().__init__()
         self.message = message
 
+    # Construye el cuadro de confirmación antes de borrar un ticket.
     def compose(self) -> ComposeResult:
         with Vertical(id="confirm-box"):
             yield Label(self.message)
@@ -77,10 +83,12 @@ class ConfirmModal(ModalScreen):
                 yield Button("Eliminar", id="yes", variant="error")
                 yield Button("Cancelar", id="no")
 
+    # Confirma la operación de borrado.
     @on(Button.Pressed, "#yes")
     def yes(self) -> None:
         self.dismiss(True)
 
+    # Cancela el borrado y cierra el modal.
     @on(Button.Pressed, "#no")
     def no(self) -> None:
         self.dismiss(False)
@@ -92,11 +100,13 @@ class OrderStatusModal(ModalScreen):
     #status-box { width: 46; border: round $accent; padding: 1 2; background: $surface; }
     """
 
+    # Guarda el id del pedido y su estado actual para editarlo.
     def __init__(self, order_id, current_status):
         super().__init__()
         self.order_id = order_id
         self.current_status = current_status
 
+    # Construye el modal que permite cambiar el estado de un pedido.
     def compose(self) -> ComposeResult:
         with Vertical(id="status-box"):
             yield Label(f"Pedido #{self.order_id} — cambiar estado")
@@ -110,9 +120,11 @@ class OrderStatusModal(ModalScreen):
                 yield Button("Cancelar", id="cancel", variant="error")
 
     @on(Button.Pressed, "#save")
+    # Devuelve el nuevo estado seleccionado al llamador.
     def save(self) -> None:
         self.dismiss(self.query_one("#status-select", Select).value)
 
+    # Cierra el modal sin aplicar cambios.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -127,6 +139,7 @@ class RegisterModal(ModalScreen):
     #register-status { height: 1; color: $error; }
     """
 
+    # Construye el modal de auto-registro por cédula.
     def compose(self) -> ComposeResult:
         with Vertical(id="register-box"):
             yield Label("Registro de nuevo usuario")
@@ -142,6 +155,7 @@ class RegisterModal(ModalScreen):
                 yield Button("Registrarme", id="submit", variant="success")
                 yield Button("Cancelar", id="cancel", variant="error")
 
+    # Envía la solicitud de registro al backend y devuelve el usuario creado.
     @on(Button.Pressed, "#submit")
     async def submit(self) -> None:
         cedula = self.query_one("#reg-cedula", Input).value
@@ -167,6 +181,7 @@ class RegisterModal(ModalScreen):
             return
         self.dismiss({"username": username, "cargo": data.get("cargo")})
 
+    # Cierra el modal de registro sin crear cuenta.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -189,12 +204,14 @@ class DepartmentApp(App):
         ("r", "refresh", "Refrescar"),
     ]
 
+    # Inicializa el estado interno de la app de Atención.
     def __init__(self):
         super().__init__()
         self.token = None
         self.current_tickets = []
         self.current_pedidos = []
 
+    # Dibuja la pantalla de login inicial.
     def compose(self) -> ComposeResult:
         yield Header(name=TITLE)
         with Vertical(id="login-box"):
@@ -208,11 +225,14 @@ class DepartmentApp(App):
         yield Footer()
 
     @on(Button.Pressed, "#login-btn")
+    # Ejecuta el login cuando el usuario pulsa el botón.
     async def login_button_pressed(self) -> None:
         await self.handle_login()
 
+    # Abre el modal de auto-registro y rellena el usuario al cerrar.
     @on(Button.Pressed, "#register-btn")
     def open_register(self) -> None:
+        # Rellena el login si el registro fue exitoso.
         def handle_result(result):
             if result:
                 self.query_one("#username", Input).value = result["username"]
@@ -222,14 +242,17 @@ class DepartmentApp(App):
 
         self.push_screen(RegisterModal(), handle_result)
 
+    # Configura foco y título al montar la vista.
     def on_mount(self) -> None:
         self.title = TITLE
         self.query_one("#username", Input).focus()
 
+    # Mueve el foco al campo contraseña cuando el usuario termina de escribir el usuario.
     @on(Input.Submitted, "#username")
     def focus_password(self) -> None:
         self.query_one("#password", Input).focus()
 
+    # Intenta login LDAP y, si falla, usa la cuenta auto-registrada.
     @on(Input.Submitted, "#password")
     async def handle_login(self) -> None:
         username = self.query_one("#username", Input).value
@@ -258,6 +281,7 @@ class DepartmentApp(App):
             return
         await self.show_main()
 
+    # Cambia la pantalla de login por la interfaz principal con pestañas.
     async def show_main(self) -> None:
         await self.query_one("#login-box").remove()
         main = Vertical(id="main")
@@ -276,17 +300,21 @@ class DepartmentApp(App):
         await self.load_pedidos()
         self.query_one("#search-tickets", Input).focus()
 
+    # Vuelve a cargar los tickets cuando se confirma una búsqueda.
     @on(Input.Submitted, "#search-tickets")
     async def on_search_tickets(self) -> None:
         await self.load_tickets()
 
+    # Vuelve a cargar los pedidos cuando se confirma una búsqueda.
     @on(Input.Submitted, "#search-pedidos")
     async def on_search_pedidos(self) -> None:
         await self.load_pedidos()
 
+    # Devuelve el id de la pestaña activa para saber qué lista manejar.
     def active_tab(self) -> str:
         return self.query_one(TabbedContent).active
 
+    # Refresca la pestaña activa y limpia el buscador.
     async def action_refresh(self) -> None:
         if not self.token:
             return
@@ -297,6 +325,7 @@ class DepartmentApp(App):
             self.query_one("#search-tickets", Input).value = ""
             await self.load_tickets()
 
+    # Descarga los tickets desde la API y los pinta en la tabla.
     async def load_tickets(self) -> None:
         if not self.token:
             return
@@ -320,6 +349,7 @@ class DepartmentApp(App):
         else:
             table.add_row("-", *["sin registros" for _ in columns])
 
+    # Descarga los pedidos y muestra también sus items resumidos.
     async def load_pedidos(self) -> None:
         if not self.token:
             return
@@ -352,6 +382,7 @@ class DepartmentApp(App):
         else:
             table.add_row("-", "sin pedidos", "", "", "", "")
 
+    # Devuelve el ticket seleccionado en la tabla activa.
     def selected_ticket(self):
         table = self.query_one("#table-tickets", DataTable)
         if table.cursor_row is None or table.cursor_row < 0:
@@ -360,6 +391,7 @@ class DepartmentApp(App):
             return None
         return self.current_tickets[table.cursor_row]
 
+    # Devuelve el pedido seleccionado en la tabla de pedidos.
     def selected_pedido(self):
         table = self.query_one("#table-pedidos", DataTable)
         if table.cursor_row is None or table.cursor_row < 0:
@@ -368,6 +400,7 @@ class DepartmentApp(App):
             return None
         return self.current_pedidos[table.cursor_row]
 
+    # Abre el formulario de creación de ticket o bloquea la acción en pedidos.
     def action_new_record(self) -> None:
         if not self.token:
             return
@@ -375,12 +408,14 @@ class DepartmentApp(App):
             self.notify("Los pedidos no se crean manualmente, solo desde el checkout", severity="warning")
             return
 
+        # Envía el nuevo ticket al backend cuando el modal devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_new_ticket(data))
 
         self.push_screen(TicketModal(f"Nuevo — {TITLE}"), handle_result)
 
+    # Inserta un ticket nuevo en el backend.
     async def submit_new_ticket(self, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.post(
@@ -392,6 +427,7 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_tickets()
 
+    # Edita un ticket o, si estás en pedidos, abre el cambio de estado.
     def action_edit_record(self) -> None:
         if self.active_tab() == "tab-pedidos":
             record = self.selected_pedido()
@@ -399,6 +435,7 @@ class DepartmentApp(App):
                 self.notify("Selecciona un pedido primero", severity="warning")
                 return
 
+            # Envía el nuevo estado del pedido cuando se confirma el modal.
             def handle_status(new_status):
                 if new_status:
                     self.run_worker(self.submit_edit_pedido(record["id"], new_status))
@@ -411,12 +448,14 @@ class DepartmentApp(App):
             self.notify("Selecciona un ticket primero", severity="warning")
             return
 
+        # Envía la edición del ticket cuando el formulario devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_edit_ticket(record["id"], data))
 
         self.push_screen(TicketModal(f"Editar — {TITLE}", initial=record), handle_result)
 
+    # Actualiza un ticket existente en la API.
     async def submit_edit_ticket(self, record_id, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.put(
@@ -428,6 +467,7 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_tickets()
 
+    # Cambia el estado de un pedido en la API.
     async def submit_edit_pedido(self, order_id, new_status) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.put(
@@ -439,6 +479,7 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_pedidos()
 
+    # Elimina un ticket o bloquea la acción cuando la vista activa es pedidos.
     def action_delete_record(self) -> None:
         if self.active_tab() == "tab-pedidos":
             self.notify("Los pedidos no se pueden eliminar", severity="warning")
@@ -449,12 +490,14 @@ class DepartmentApp(App):
             self.notify("Selecciona un ticket primero", severity="warning")
             return
 
+        # Ejecuta el borrado solo si el usuario confirma el modal.
         def handle_result(confirmed):
             if confirmed:
                 self.run_worker(self.submit_delete_ticket(record["id"]))
 
         self.push_screen(ConfirmModal(f"¿Eliminar ticket #{record['id']}?"), handle_result)
 
+    # Borra un ticket de la API.
     async def submit_delete_ticket(self, record_id) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.delete(

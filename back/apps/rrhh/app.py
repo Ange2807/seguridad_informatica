@@ -24,11 +24,13 @@ class FormModal(ModalScreen):
     #form-box Input { margin-bottom: 1; }
     """
 
+    # Guarda el título del formulario y los valores iniciales si existen.
     def __init__(self, form_title, initial=None):
         super().__init__()
         self.form_title = form_title
         self.initial = initial or {}
 
+    # Construye el modal para crear o editar empleados.
     def compose(self) -> ComposeResult:
         with Vertical(id="form-box"):
             yield Label(self.form_title)
@@ -39,10 +41,12 @@ class FormModal(ModalScreen):
                 yield Button("Cancelar", id="cancel", variant="error")
 
     @on(Button.Pressed, "#save")
+    # Devuelve los datos del formulario al cerrar con Guardar.
     def save(self) -> None:
         data = {key: self.query_one(f"#field-{key}", Input).value for key, _ in FIELDS}
         self.dismiss(data)
 
+    # Cierra el modal sin aplicar cambios.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -57,6 +61,7 @@ class RegisterModal(ModalScreen):
     #register-status { height: 1; color: $error; }
     """
 
+    # Construye el modal de auto-registro por cédula.
     def compose(self) -> ComposeResult:
         with Vertical(id="register-box"):
             yield Label("Registro de nuevo usuario")
@@ -72,6 +77,7 @@ class RegisterModal(ModalScreen):
                 yield Button("Registrarme", id="submit", variant="success")
                 yield Button("Cancelar", id="cancel", variant="error")
 
+    # Envía la cédula y credenciales al backend para crear la cuenta interna.
     @on(Button.Pressed, "#submit")
     async def submit(self) -> None:
         cedula = self.query_one("#reg-cedula", Input).value
@@ -97,6 +103,7 @@ class RegisterModal(ModalScreen):
             return
         self.dismiss({"username": username, "cargo": data.get("cargo")})
 
+    # Cierra el modal de registro sin crear usuario.
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.dismiss(None)
@@ -118,11 +125,13 @@ class DepartmentApp(App):
         ("r", "refresh", "Refrescar"),
     ]
 
+    # Inicializa el estado de la app de RRHH.
     def __init__(self):
         super().__init__()
         self.token = None
         self.current_records = []
 
+    # Dibuja la pantalla de login inicial.
     def compose(self) -> ComposeResult:
         yield Header(name=TITLE)
         with Vertical(id="login-box"):
@@ -135,20 +144,25 @@ class DepartmentApp(App):
             yield Static("", id="status")
         yield Footer()
 
+    # Ajusta el título y enfoca el campo usuario al iniciar.
     def on_mount(self) -> None:
         self.title = TITLE
         self.query_one("#username", Input).focus()
 
+    # Pasa el foco a la contraseña cuando se completa el usuario.
     @on(Input.Submitted, "#username")
     def focus_password(self) -> None:
         self.query_one("#password", Input).focus()
 
+    # Ejecuta el intento de inicio de sesión.
     @on(Button.Pressed, "#login-btn")
     async def login_button_pressed(self) -> None:
         await self.handle_login()
 
+    # Abre el modal de auto-registro y rellena el usuario si fue exitoso.
     @on(Button.Pressed, "#register-btn")
     def open_register(self) -> None:
+        # Copia el usuario recién creado al formulario de login.
         def handle_result(result):
             if result:
                 self.query_one("#username", Input).value = result["username"]
@@ -158,6 +172,7 @@ class DepartmentApp(App):
 
         self.push_screen(RegisterModal(), handle_result)
 
+    # Intenta autenticación LDAP y, si falla, login por cuenta auto-registrada.
     @on(Input.Submitted, "#password")
     async def handle_login(self) -> None:
         username = self.query_one("#username", Input).value
@@ -186,6 +201,7 @@ class DepartmentApp(App):
             return
         await self.show_main()
 
+    # Reemplaza el login por la vista principal con tabla y buscador.
     async def show_main(self) -> None:
         await self.query_one("#login-box").remove()
         main = Vertical(id="main")
@@ -197,16 +213,19 @@ class DepartmentApp(App):
         await self.load_data()
         self.query_one("#search", Input).focus()
 
+    # Recarga la tabla cuando el usuario confirma una búsqueda.
     @on(Input.Submitted, "#search")
     async def on_search(self) -> None:
         await self.load_data()
 
+    # Limpia el buscador y vuelve a pedir todos los registros.
     async def action_refresh(self) -> None:
         if not self.token:
             return
         self.query_one("#search", Input).value = ""
         await self.load_data()
 
+    # Consulta la API y pinta los empleados en la tabla.
     async def load_data(self) -> None:
         if not self.token:
             return
@@ -230,6 +249,7 @@ class DepartmentApp(App):
         else:
             table.add_row("-", *["sin registros" for _ in columns])
 
+    # Devuelve el empleado actualmente seleccionado en la tabla.
     def selected_record(self):
         table = self.query_one("#table", DataTable)
         if table.cursor_row is None or table.cursor_row < 0:
@@ -238,16 +258,19 @@ class DepartmentApp(App):
             return None
         return self.current_records[table.cursor_row]
 
+    # Abre el formulario para crear un nuevo empleado.
     def action_new_record(self) -> None:
         if not self.token:
             return
 
+        # Envia el nuevo empleado cuando el modal devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_new(data))
 
         self.push_screen(FormModal(f"Nuevo — {TITLE}"), handle_result)
 
+    # Inserta un empleado nuevo en la base de datos.
     async def submit_new(self, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.post(
@@ -259,18 +282,21 @@ class DepartmentApp(App):
                 self.notify(f"Error: {res.json().get('error')}", severity="error")
         await self.load_data()
 
+    # Abre el formulario de edición para el empleado seleccionado.
     def action_edit_record(self) -> None:
         record = self.selected_record()
         if not record:
             self.notify("Selecciona un registro primero", severity="warning")
             return
 
+        # Envía la edición al backend cuando el modal devuelve datos.
         def handle_result(data):
             if data:
                 self.run_worker(self.submit_edit(record["id"], data))
 
         self.push_screen(FormModal(f"Editar — {TITLE}", initial=record), handle_result)
 
+    # Actualiza un empleado existente.
     async def submit_edit(self, record_id, data) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             res = await client.put(
