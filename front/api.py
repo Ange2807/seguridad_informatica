@@ -103,3 +103,45 @@ class ApiClient:
         self.username = None
         self.role = None
         self.nombre = None
+
+    # ── Generic Department CRUD ──────────────────────────
+
+    async def get_records(self, department: str, query: str = ""):
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as c:
+            params = {"q": query} if query else {}
+            r = await c.get(f"/api/{department}", params=params, headers=self._auth_headers())
+            if r.status_code != 200:
+                raise Exception(r.json().get("error", f"Error al obtener {department}"))
+            return r.json()
+
+    async def create_record(self, department: str, data: dict):
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as c:
+            r = await c.post(
+                f"/api/{department}",
+                json=data,
+                headers=self._auth_headers()
+            )
+            if r.status_code != 201:
+                raise Exception(r.json().get("error", f"Error al crear en {department}"))
+            return r.json()
+
+    async def update_record(self, department: str, record_id: int, data: dict):
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as c:
+            r = await c.put(
+                f"/api/{department}/{record_id}",
+                json=data,
+                headers=self._auth_headers()
+            )
+            if r.status_code != 200:
+                raise Exception(r.json().get("error", f"Error al actualizar en {department}"))
+            return r.json()
+
+    async def delete_record(self, department: str, record_id: int):
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as c:
+            r = await c.delete(
+                f"/api/{department}/{record_id}",
+                headers=self._auth_headers()
+            )
+            if r.status_code != 204:
+                raise Exception(r.json().get("error", f"Error al eliminar en {department}"))
+            return True

@@ -9,6 +9,7 @@ from api import ApiClient
 from screens.login import LoginScreen
 from screens.catalog import CatalogScreen
 from screens.orders import OrdersScreen
+from screens.staff import StaffScreen
 
 
 class SecureCorpApp(App):
@@ -33,6 +34,9 @@ class SecureCorpApp(App):
 
     def show_orders(self) -> None:
         self.switch_screen(OrdersScreen())
+
+    def show_staff(self) -> None:
+        self.switch_screen(StaffScreen())
 
     def show_login(self) -> None:
         self.switch_screen(LoginScreen())

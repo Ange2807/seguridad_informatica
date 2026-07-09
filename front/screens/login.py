@@ -77,7 +77,7 @@ class LoginScreen(Screen):
                     error_w.update("⚠  Usuario y contraseña requeridos")
                     return
                 await self.app.api.staff_login(u, p)
-                self.app.show_catalog()
+                self.app.show_staff()
 
             elif btn == "btn-staff-register":
                 c = self.query_one("#staff-cedula", Input).value.strip()
@@ -88,7 +88,7 @@ class LoginScreen(Screen):
                     return
                 await self.app.api.staff_register(c, u, p)
                 await self.app.api.staff_login(u, p)
-                self.app.show_catalog()
+                self.app.show_staff()
 
         except Exception as e:
             error_w.update(f"⚠  {e}")
