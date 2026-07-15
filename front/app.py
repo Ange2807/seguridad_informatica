@@ -7,8 +7,6 @@ from textual.app import App
 
 from api import ApiClient
 from screens.login import LoginScreen
-from screens.catalog import CatalogScreen
-from screens.orders import OrdersScreen
 from screens.staff import StaffScreen
 
 
@@ -22,18 +20,11 @@ class SecureCorpApp(App):
     def __init__(self):
         super().__init__()
         self.api = ApiClient()
-        self.cart: list[dict] = []
 
     def on_mount(self) -> None:
         self.push_screen(LoginScreen())
 
     # ── Navegación ───────────────────────────────────────
-
-    def show_catalog(self) -> None:
-        self.switch_screen(CatalogScreen())
-
-    def show_orders(self) -> None:
-        self.switch_screen(OrdersScreen())
 
     def show_staff(self) -> None:
         self.switch_screen(StaffScreen())
@@ -43,7 +34,6 @@ class SecureCorpApp(App):
 
     def do_logout(self) -> None:
         self.api.logout()
-        self.cart.clear()
         self.show_login()
 
 

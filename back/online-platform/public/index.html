@@ -1,229 +1,134 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<title>Plataforma Online — Empresa</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  :root { color-scheme: light dark; }
-  body {
-    font-family: system-ui, sans-serif;
-    max-width: 860px;
-    margin: 2.5rem auto;
-    padding: 0 1.2rem;
-    line-height: 1.5;
-  }
-  h1 { font-size: 1.5rem; }
-  section { margin-bottom: 2.5rem; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #ddd; }
-  form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-  input { padding: 0.4rem 0.6rem; }
-  button { padding: 0.45rem 0.9rem; cursor: pointer; }
-  .msg { font-size: 0.9rem; margin-top: 0.5rem; }
-  .msg.error { color: #c0392b; }
-  .msg.ok { color: #1e8449; }
-  .search-row { margin-bottom: 1rem; }
-  #cart-box { border: 1px solid #ccc; border-radius: 6px; padding: 0.8rem 1rem; }
-  #cart-items { list-style: none; padding: 0; margin: 0 0 0.6rem; }
-  #cart-items li { display: flex; justify-content: space-between; padding: 0.2rem 0; }
-  #cart-total { font-weight: 600; }
-  .session-status { font-size: 0.85rem; color: #666; }
-</style>
+  <meta charset="utf-8">
+  <title>Plataforma Online — Empresa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Catálogo público y sistema de compras de nuestra plataforma.">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Plataforma Online</h1>
-  <p>Catálogo público con carrito y compra. Las cuentas de invitado son opcionales y no requieren OpenLDAP.</p>
+  <div id="msg" class="msg"></div>
 
-  <section>
-    <h2>Catálogo</h2>
-    <div class="search-row">
-      <input id="search-input" placeholder="Buscar producto...">
-      <button id="search-btn">Buscar</button>
-      <button id="clear-search-btn">Limpiar</button>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-icon">🔥</span>
+        SECURECORP
+      </div>
+      <div class="nav-actions">
+        <span class="session-status" id="session-status">Invitado</span>
+      </div>
     </div>
-    <table>
-      <thead><tr><th>Producto</th><th>Precio</th><th>Disponible</th><th></th></tr></thead>
-      <tbody id="catalog-body"></tbody>
-    </table>
-  </section>
+  </nav>
 
-  <section>
-    <h2>Carrito</h2>
-    <div id="cart-box">
-      <ul id="cart-items"></ul>
-      <p id="cart-total">Total: $0.00</p>
-      <button id="checkout-btn">Pagar</button>
-      <p class="session-status" id="session-status">Inicia sesión de invitado abajo para poder pagar.</p>
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Equipamiento de Alta Calidad</h1>
+      <p>Descubre nuestro catálogo de productos y realiza tus compras con la mayor seguridad y confianza.</p>
     </div>
-  </section>
+  </header>
 
-  <section>
-    <h2>Mis pedidos</h2>
-    <p class="session-status" id="orders-status">Inicia sesión para ver tu historial de pedidos.</p>
-    <table>
-      <thead><tr><th>#</th><th>Fecha</th><th>Items</th><th>Total</th><th>Estado</th></tr></thead>
-      <tbody id="orders-body"></tbody>
-    </table>
-  </section>
+  <div class="main-layout">
+    <!-- Left Column: Catalog -->
+    <main class="content-area">
+      <section class="section-card catalog-section">
+        <div class="section-header">
+          <h2>Catálogo de Productos</h2>
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Buscar producto...">
+            <button id="search-btn" class="btn-icon">🔍</button>
+            <button id="clear-search-btn" class="btn-text">Limpiar</button>
+          </div>
+        </div>
+        <div id="catalog-grid" class="catalog-grid">
+          <!-- Products will be injected here -->
+        </div>
+      </section>
 
-  <section>
-    <h2>Cuenta de invitado</h2>
-    <form id="register-form">
-      <input id="reg-user" placeholder="usuario" required>
-      <input id="reg-pass" type="password" placeholder="contraseña" required>
-      <button type="submit">Registrarme</button>
-    </form>
-    <form id="login-form">
-      <input id="login-user" placeholder="usuario" required>
-      <input id="login-pass" type="password" placeholder="contraseña" required>
-      <button type="submit">Iniciar sesión</button>
-    </form>
-    <p id="msg" class="msg"></p>
-  </section>
+      <section class="section-card orders-section">
+        <h2>Historial de Pedidos</h2>
+        <p class="status-text" id="orders-status">Inicia sesión para ver tu historial de pedidos.</p>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Pedido ID</th>
+                <th>Fecha</th>
+                <th>Artículos</th>
+                <th>Total</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="orders-body">
+              <!-- Orders injected here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
 
-<script>
-let authToken = null;
-let cart = [];
+    <!-- Right Column: Sidebar (Cart & Auth) -->
+    <aside class="sidebar">
+      
+      <!-- Cart Widget -->
+      <div class="widget cart-widget">
+        <div class="widget-header">
+          <h3>🛒 Tu Carrito</h3>
+        </div>
+        <div class="widget-body">
+          <ul id="cart-items">
+            <!-- Cart items injected here -->
+          </ul>
+          <div class="cart-summary">
+            <span>Total a Pagar</span>
+            <span id="cart-total" class="total-amount">$0.00</span>
+          </div>
+          <button id="checkout-btn" class="btn-primary btn-block">Finalizar Compra</button>
+        </div>
+      </div>
 
-function showMsg(text, ok) {
-  const el = document.getElementById('msg');
-  el.textContent = text;
-  el.className = 'msg ' + (ok ? 'ok' : 'error');
-}
+      <!-- Auth Widget -->
+      <div class="widget auth-widget">
+        <div class="widget-header">
+          <h3>👤 Mi Cuenta</h3>
+        </div>
+        <div class="widget-body">
+          
+          <div class="auth-container">
+            <form id="login-form" class="auth-form">
+              <h4>Iniciar Sesión</h4>
+              <div class="input-group">
+                <input type="text" id="login-user" placeholder="Usuario" required>
+              </div>
+              <div class="input-group">
+                <input type="password" id="login-pass" placeholder="Contraseña" required>
+              </div>
+              <button type="submit" class="btn-primary btn-block">Ingresar</button>
+            </form>
 
-async function loadCatalog(query) {
-  const qs = query ? `?q=${encodeURIComponent(query)}` : '';
-  const res = await fetch(`/api/public/catalog${qs}`);
-  const rows = await res.json();
-  const body = document.getElementById('catalog-body');
-  body.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r.producto}</td>
-      <td>$${Number(r.precio).toFixed(2)}</td>
-      <td>${r.cantidad}</td>
-      <td><button data-id="${r.id}" data-nombre="${r.producto}" data-precio="${r.precio}" class="add-btn">Agregar</button></td>
-    </tr>`).join('');
-  document.querySelectorAll('.add-btn').forEach(btn => {
-    btn.addEventListener('click', () => addToCart(btn.dataset));
-  });
-}
+            <div class="divider"><span>o</span></div>
 
-function addToCart({ id, nombre, precio }) {
-  const existing = cart.find(item => item.id === id);
-  if (existing) {
-    existing.cantidad += 1;
-  } else {
-    cart.push({ id, nombre, precio: Number(precio), cantidad: 1 });
-  }
-  renderCart();
-}
+            <form id="register-form" class="auth-form">
+              <h4>Crear Cuenta Nueva</h4>
+              <div class="input-group">
+                <input type="text" id="reg-user" placeholder="Nuevo Usuario" required>
+              </div>
+              <div class="input-group">
+                <input type="password" id="reg-pass" placeholder="Contraseña" required>
+              </div>
+              <button type="submit" class="btn-secondary btn-block">Registrarme</button>
+            </form>
+          </div>
 
-function renderCart() {
-  const list = document.getElementById('cart-items');
-  list.innerHTML = cart.map(item =>
-    `<li><span>${item.nombre} x${item.cantidad}</span><span>$${(item.precio * item.cantidad).toFixed(2)}</span></li>`
-  ).join('');
-  const total = cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
-  document.getElementById('cart-total').textContent = `Total: $${total.toFixed(2)}`;
-}
+        </div>
+      </div>
+      
+    </aside>
+  </div>
 
-document.getElementById('search-btn').addEventListener('click', () => {
-  loadCatalog(document.getElementById('search-input').value);
-});
-document.getElementById('clear-search-btn').addEventListener('click', () => {
-  document.getElementById('search-input').value = '';
-  loadCatalog();
-});
-
-document.getElementById('checkout-btn').addEventListener('click', async () => {
-  if (!authToken) {
-    showMsg('Inicia sesión de invitado antes de pagar.', false);
-    return;
-  }
-  if (cart.length === 0) {
-    showMsg('El carrito está vacío.', false);
-    return;
-  }
-  const items = cart.map(item => ({ id: item.id, cantidad: item.cantidad }));
-  const res = await fetch('/api/public/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-    body: JSON.stringify({ items })
-  });
-  const data = await res.json();
-  if (res.ok) {
-    showMsg(`Pedido #${data.id} confirmado. Total: $${Number(data.total).toFixed(2)}`, true);
-    cart = [];
-    renderCart();
-    loadCatalog();
-    loadMyOrders();
-  } else {
-    showMsg(data.error || 'no se pudo procesar el pedido', false);
-  }
-});
-
-async function loadMyOrders() {
-  if (!authToken) return;
-  const res = await fetch('/api/public/orders/mine', {
-    headers: { Authorization: `Bearer ${authToken}` }
-  });
-  const orders = await res.json();
-  const body = document.getElementById('orders-body');
-  if (!res.ok || !Array.isArray(orders) || orders.length === 0) {
-    body.innerHTML = '';
-    document.getElementById('orders-status').textContent = 'Todavía no tienes pedidos.';
-    return;
-  }
-  document.getElementById('orders-status').textContent = '';
-  body.innerHTML = orders.map(order => {
-    const items = order.items.map(it => `${it.cantidad}x ${it.producto}`).join(', ');
-    const fecha = new Date(order.creado_en).toLocaleString();
-    return `<tr>
-      <td>${order.id}</td>
-      <td>${fecha}</td>
-      <td>${items}</td>
-      <td>$${Number(order.total).toFixed(2)}</td>
-      <td>${order.estado}</td>
-    </tr>`;
-  }).join('');
-}
-
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('reg-user').value;
-  const password = document.getElementById('reg-pass').value;
-  const res = await fetch('/api/guest/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  showMsg(res.ok ? 'Cuenta creada, ya puedes iniciar sesión.' : data.error, res.ok);
-});
-
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('login-user').value;
-  const password = document.getElementById('login-pass').value;
-  const res = await fetch('/api/guest/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
-  if (res.ok) {
-    authToken = data.token;
-    document.getElementById('session-status').textContent = `Sesión iniciada como ${username}. Ya puedes pagar.`;
-    showMsg('Sesión iniciada.', true);
-    loadMyOrders();
-  } else {
-    showMsg(data.error, false);
-  }
-});
-
-loadCatalog();
-renderCart();
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
