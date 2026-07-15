@@ -118,14 +118,21 @@ historial.
 ## Levantar el proyecto
 
 ```powershell
+cd back
 docker compose up --build -d
 ```
 
 - Plataforma pública: https://localhost (certificado autofirmado, el navegador dará aviso).
-- Apps de departamento (sin puertos publicados):
+- Apps de departamento (sin puertos publicados). Usa el comando que corresponda a tu departamento:
 
 ```powershell
+# Aplicación Unificada (Menú)
 docker attach back-online-tui-1
+
+# O directo a los departamentos:
+docker attach back-atencion-1
+docker attach back-rrhh-1
+docker attach back-inventario-1
 ```
 
 En la pantalla de login de cualquiera de las tres, el botón **"Registrarme"** pide cédula +
