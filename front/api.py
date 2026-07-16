@@ -11,6 +11,8 @@ class ApiClient:
     """Gestiona la autenticación y las llamadas a la API."""
 
     def __init__(self):
+        # El token JWT NO se guarda en disco duro ni bases de datos locales.
+        # Solo existe en la memoria RAM de esta instancia, mitigando robos físicos.
         self.token: str | None = None
         self.username: str | None = None
         self.role: str | None = None
@@ -20,6 +22,8 @@ class ApiClient:
 
     # Arma la cabecera Authorization con el token guardado, si existe.
     def _auth_headers(self) -> dict:
+        # [SEGURIDAD] Este método inyecta automáticamente el token en CADA petición protegida.
+        # Evita descuidos de programadores que podrían exponer tokens en URLs (query params).
         if self.token:
             return {"Authorization": f"Bearer {self.token}"}
         return {}
@@ -112,6 +116,7 @@ class ApiClient:
 
     # Limpia el token y los datos de sesión guardados en la instancia.
     def logout(self):
+        # [SEGURIDAD] Al hacer logout, se purgan explícitamente las credenciales de la memoria.
         self.token = None
         self.username = None
         self.role = None

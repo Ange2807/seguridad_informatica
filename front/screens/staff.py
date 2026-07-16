@@ -317,6 +317,11 @@ class StaffScreen(Screen):
 
         tabs = self.query_one("#staff-tabs", TabbedContent)
         
+        # [SEGURIDAD] El frontend usa esta lógica para adaptar la UI y ocultar herramientas prohibidas.
+        # IMPORTANTE: Esto es solo "Seguridad por Oscuridad". Si el usuario hackea su frontend local
+        # para mostrar pestañas prohibidas, el backend (Proxy2) validará el JWT y bloqueará
+        # la petición con un error 403 (Forbidden), evitando cualquier daño a la base de datos.
+        
         if role in ["atencion", "administrador"]:
             await tabs.add_pane(TabPane("🛍️ Nuevo Pedido", NuevoPedidoTab()))
             await tabs.add_pane(TabPane("🛒 Pedidos", PedidosTab()))

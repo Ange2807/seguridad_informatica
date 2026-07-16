@@ -10,6 +10,8 @@ export default function ProductRow({ producto, precio, cantidad }) {
         <PackageIcon />
       </div>
       <div className="product-info">
+        {/* [SEGURIDAD] React usa llaves {} para renderizar la variable. Esto escapa automáticamente
+            cualquier string sospechoso, previniendo ataques de inyección XSS (Cross-Site Scripting). */}
         <h3>{producto}</h3>
         <div className={`product-stock ${lowStock ? "stock-low" : ""} ${outOfStock ? "stock-out" : ""}`}>
           {outOfStock ? "Agotado" : `Disponibles: ${cantidad}`}

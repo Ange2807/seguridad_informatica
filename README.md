@@ -202,3 +202,81 @@ db/init.sql          esquema y datos semilla de PostgreSQL
 
 `POST /auth/login` (bind LDAP) no pasa por `proxy1`; solo lo usan las apps de departamento,
 que hablan con `proxy2` directo por `net-gateway`.
+
+## Exposición del Frontend y Código Base
+
+A continuación se detalla cómo se gestionan ambos frontends (Plataforma Web y Terminal TUI) y las porciones de código que sustentan su funcionamiento.
+
+### 1. Plataforma Web (React - online-platform)
+Es una aplicación **React** que actúa exclusivamente como un catálogo de **solo lectura**. Al no tener estado de usuario (sesión) y no tener formularios que modifiquen la base de datos, reduce drásticamente los riesgos de seguridad web.
+
+**Código clave de consumo de API (`client/src/App.jsx`):**
+```jsx
+// useEffect se dispara cuando la aplicación carga o cuando el usuario busca ('query')
+useEffect(() => {
+  const fetchCatalog = async () => {
+    // Si hay una búsqueda, se agrega el parámetro ?q= a la URL
+    const qs = query ? `?q=${encodeURIComponent(query)}` : "";
+    
+    // El frontend pide los datos a proxy1 (Nginx), quien los rutea a proxy2 internamente.
+    // Nunca toca la base de datos directamente.
+    const res = await fetch(`/api/public/catalog${qs}`);
+    if (res.ok) {
+      const data = await res.json();
+      setProducts(data); // Se guardan los productos en el estado de React
+    }
+  };
+  fetchCatalog();
+}, [query]);
+
+// Al renderizar la información, React usa llaves {} que previenen ataques XSS (Cross-Site Scripting)
+// escapando automáticamente cualquier inyección de código.
+<p>{product.producto}</p>
+```
+
+### 2. Terminal de Empleados (Python TUI)
+Aplicación de consola usando la librería **Textual**. Es asíncrona, conectándose al backend mediante la librería `httpx`. Mantiene su seguridad mediante dos estrategias: **almacenamiento de credenciales en memoria** y **delegación de autorización al backend**.
+
+**Manejo seguro de credenciales (`front/api.py`):**
+```python
+class ApiClient:
+    def __init__(self):
+        # El token JWT NO se guarda en disco duro ni bases de datos locales.
+        # Solo existe en la memoria RAM de esta instancia.
+        self.token: str | None = None
+        self.role: str | None = None
+
+    def _auth_headers(self) -> dict:
+        # Este método inyecta automáticamente el token en CADA petición.
+        # Evita descuidos de programadores que podrían exponer tokens en URLs.
+        if self.token:
+            return {"Authorization": f"Bearer {self.token}"}
+        return {}
+        
+    def logout(self):
+        # Al hacer logout, se purgan las credenciales de la memoria.
+        self.token = None
+        self.role = None
+```
+
+**Adaptación Visual según Rol (`front/screens/staff.py`):**
+```python
+class StaffScreen(Screen):
+    def on_mount(self) -> None:
+        # Se lee el rol del usuario (guardado en la RAM por ApiClient)
+        role = self.app.api.role
+        
+        # El frontend usa esta lógica visual para NO molestar al usuario con 
+        # opciones prohibidas (Ocultando pestañas, botones, etc).
+        if role in ("atencion", "administrador"):
+            self.query_one(TabbedContent).add_pane(NuevoPedidoTab())
+            self.query_one(TabbedContent).add_pane(PedidosTab())
+            
+        if role in ("inventario", "administrador"):
+            self.query_one(TabbedContent).add_pane(InventarioTab())
+            
+        # IMPORTANTE: Si un atacante modificara este archivo Python para
+        # saltarse estos 'if' y ver la pestaña de "Inventario", NO podría 
+        # crear ni borrar productos, porque al enviar la petición al servidor,
+        # Proxy2 leería su firma criptográfica JWT y lo detendría (Error 403).
+```

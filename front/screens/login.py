@@ -44,6 +44,9 @@ class LoginScreen(Screen):
         error_w.update("")
 
         try:
+            # [SEGURIDAD] Se valida el input de forma reactiva ( frontend ) 
+            # para mejorar la experiencia del usuario y evitar peticiones innecesarias al servidor.
+            # Sin embargo, la validación final (authorization) la realiza el backend (Proxy2).
             if btn == "btn-staff-login":
                 u = self.query_one("#staff-user", Input).value.strip()
                 p = self.query_one("#staff-pass", Input).value
@@ -52,7 +55,7 @@ class LoginScreen(Screen):
                     return
                 await self.app.api.staff_login(u, p)
                 self.app.show_staff()
-
+                
             elif btn == "btn-staff-register":
                 c = self.query_one("#staff-cedula", Input).value.strip()
                 u = self.query_one("#staff-user", Input).value.strip()

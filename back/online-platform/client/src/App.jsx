@@ -3,6 +3,8 @@ import SearchBox from "./components/SearchBox.jsx";
 import ProductRow from "./components/ProductCard.jsx";
 import { StoreIcon } from "./components/icons.jsx";
 
+// [SEGURIDAD] El frontend pide los datos a proxy1 (Nginx), quien los rutea a proxy2 internamente.
+// Al ser un frontend 'stateless' y de solo lectura, no hay exposición directa de la BD ni manejo de tokens vulnerables.
 async function fetchCatalog(query) {
   const qs = query ? `?q=${encodeURIComponent(query)}` : "";
   const res = await fetch(`/api/public/catalog${qs}`);
