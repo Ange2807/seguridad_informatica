@@ -25,7 +25,7 @@ class LoginScreen(Screen):
                 )
                 yield Static("Plataforma de Seguridad Empresarial (Staff)", id="subtitle-text")
 
-                yield Input(placeholder="Cédula (ej: V-00000001)", id="staff-cedula")
+                yield Input(placeholder="Cédula (ej: 00000001)", id="staff-cedula")
                 yield Input(placeholder="Usuario", id="staff-user")
                 yield Input(placeholder="Contraseña", password=True, id="staff-pass")
                 with Horizontal(classes="login-buttons"):

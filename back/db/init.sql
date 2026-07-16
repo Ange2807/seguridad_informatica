@@ -30,15 +30,22 @@ CREATE TABLE inventory (
     cantidad INTEGER NOT NULL DEFAULT 0,
     ubicacion TEXT NOT NULL,
     precio NUMERIC(10,2) NOT NULL DEFAULT 0,
+    disponible BOOLEAN NOT NULL DEFAULT true,
     actualizado_en TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- guest_username: pedidos del checkout de invitado (histórico/backend, sin frontend activo hoy).
+-- cliente_nombre/cliente_cedula: pedidos creados por Atención a nombre de un comprador sin cuenta.
+-- Un pedido siempre trae uno de los dos pares de datos, nunca ambos.
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    guest_username TEXT NOT NULL,
+    guest_username TEXT,
+    cliente_nombre TEXT,
+    cliente_cedula TEXT,
     estado TEXT NOT NULL DEFAULT 'pendiente',
     total NUMERIC(10,2) NOT NULL DEFAULT 0,
-    creado_en TIMESTAMP NOT NULL DEFAULT now()
+    creado_en TIMESTAMP NOT NULL DEFAULT now(),
+    CHECK (guest_username IS NOT NULL OR (cliente_nombre IS NOT NULL AND cliente_cedula IS NOT NULL))
 );
 
 CREATE TABLE order_items (
@@ -64,21 +71,26 @@ INSERT INTO tickets (cliente, asunto, estado) VALUES
 -- Admin Principal, Jorge Diaz, Lucia Fernandez, Pedro Ramirez: en el roster pero SIN cuenta
 -- todavia, para probar el auto-registro por cedula.
 INSERT INTO employees (cedula, nombre, cargo) VALUES
-    ('V-00000001', 'Ana Gomez', 'atencion'),
-    ('V-00000002', 'Carlos Perez', 'rrhh'),
-    ('V-00000003', 'Maria Lopez', 'inventario'),
-    ('V-00000004', 'Admin Principal', 'administrador'),
-    ('V-00000005', 'Jorge Diaz', 'inventario'),
-    ('V-00000006', 'Lucia Fernandez', 'atencion'),
-    ('V-00000007', 'Pedro Ramirez', 'rrhh'),
-    ('V-00000008', 'Sofia Castillo', 'atencion'),
-    ('V-00000009', 'Diego Torres', 'inventario');
+    ('00000001', 'Ana Gomez', 'atencion'),
+    ('00000002', 'Carlos Perez', 'rrhh'),
+    ('00000003', 'Maria Lopez', 'inventario'),
+    ('00000004', 'Admin Principal', 'administrador'),
+    ('00000005', 'Jorge Diaz', 'inventario'),
+    ('00000006', 'Lucia Fernandez', 'atencion'),
+    ('00000007', 'Pedro Ramirez', 'rrhh'),
+    ('00000008', 'Sofia Castillo', 'atencion'),
+    ('00000009', 'Diego Torres', 'inventario'),
+    ('30973666', 'Angelina Rincon', 'administrador'),
+    ('31778858', 'Sarai Rincon', 'rrhh');
 
--- Cuentas ya auto-registradas de antemano (contraseña Password123 para ambas), para poder
--- iniciar sesion sin tener que pasar primero por "Registrarme".
+-- Cuentas ya auto-registradas de antemano, para poder iniciar sesion sin tener que pasar
+-- primero por "Registrarme". sofia/diego: password Password123. ange: password 123456789.
+-- sarai: password 987654321.
 INSERT INTO staff_accounts (cedula, username, password_hash) VALUES
-    ('V-00000008', 'sofia', '$2a$10$tG3xy525DAv418V2DyuMZuVdnmU43KvjklHB4vtoykK1n6g.fu7su'),
-    ('V-00000009', 'diego', '$2a$10$tG3xy525DAv418V2DyuMZuVdnmU43KvjklHB4vtoykK1n6g.fu7su');
+    ('00000008', 'sofia', '$2a$10$tG3xy525DAv418V2DyuMZuVdnmU43KvjklHB4vtoykK1n6g.fu7su'),
+    ('00000009', 'diego', '$2a$10$tG3xy525DAv418V2DyuMZuVdnmU43KvjklHB4vtoykK1n6g.fu7su'),
+    ('30973666', 'ange', '$2a$10$ZiCPyYN/Sn5uvQockp7xeOtotWeYnT5Dh0qbf5.SQRey/KtksiIBK'),
+    ('31778858', 'sarai', '$2a$10$GfPS3iPxQBZGflde8sF6t.49/xm7cRHopzIs1ygeOKUkcDbQqS2eu');
 
 INSERT INTO inventory (producto, cantidad, ubicacion, precio) VALUES
     ('Laptop 14"', 42, 'Bodega A', 549.99),
@@ -99,11 +111,16 @@ INSERT INTO orders (guest_username, estado, total, creado_en) VALUES
     ('cliente_demo', 'enviado', 605.98, now() - interval '3 days'),
     ('cliente_demo', 'pendiente', 45.50, now() - interval '1 day');
 
+-- Pedido de ejemplo creado por Atención a nombre de un comprador sin cuenta.
+INSERT INTO orders (cliente_nombre, cliente_cedula, estado, total, creado_en) VALUES
+    ('Roberto Salas', 'V-00000010', 'pendiente', 189.50, now() - interval '2 hours');
+
 INSERT INTO order_items (order_id, producto, cantidad, precio_unitario) VALUES
     (1, 'Laptop 14"', 1, 549.99),
     (1, 'Mouse inalambrico', 1, 15.99),
     (1, 'Webcam HD', 1, 29.99),
-    (2, 'Audifonos bluetooth', 1, 45.50);
+    (2, 'Audifonos bluetooth', 1, 45.50),
+    (3, 'Monitor 24"', 1, 189.50);
 
 UPDATE inventory SET cantidad = cantidad - 1 WHERE producto = 'Laptop 14"';
 UPDATE inventory SET cantidad = cantidad - 1 WHERE producto = 'Mouse inalambrico';

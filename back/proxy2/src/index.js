@@ -146,12 +146,24 @@ app.get("/api/:department", auth, async (req, res) => {
   }
 });
 
-// Crea un registro de un departamento, excepto pedidos que solo nacen del checkout.
+// Crea un pedido a nombre de un comprador sin cuenta (Atención/Administrador), con la
+// misma validación transaccional de stock que el checkout de invitado.
+app.post("/api/pedidos", auth, async (req, res) => {
+  if (!hasPermission(req.user.role, "write:pedidos")) {
+    return res.status(403).json({ error: "permiso denegado" });
+  }
+  const { cliente_nombre, cliente_cedula, items } = req.body || {};
+  try {
+    const order = await db.createStaffOrder({ cliente_nombre, cliente_cedula }, items);
+    res.status(201).json(order);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Crea un registro de un departamento (pedidos se maneja en la ruta específica de arriba).
 app.post("/api/:department", auth, async (req, res) => {
   const { department } = req.params;
-  if (department === "pedidos") {
-    return res.status(400).json({ error: "los pedidos solo se crean desde el checkout" });
-  }
   if (!hasPermission(req.user.role, `write:${department}`)) {
     return res.status(403).json({ error: "permiso denegado" });
   }

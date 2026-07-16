@@ -26,8 +26,8 @@ tener que registrar nada primero.
 
   usuario   contraseña     rol/cargo     cédula        app
   --------  -------------  ------------  ------------  --------------
-  sofia     Password123    atencion      V-00000008    apps/atencion
-  diego     Password123    inventario    V-00000009    apps/inventario
+  sofia     Password123    atencion      00000008      apps/atencion
+  diego     Password123    inventario    00000009      apps/inventario
 
 
 ------------------------------------------------------------------
@@ -40,13 +40,13 @@ que tú elijas -> el rol queda fijado según el cargo de la tabla.
 
   cédula        nombre              cargo (rol que le va a tocar)
   ------------  ------------------  ------------------------------
-  V-00000004    Admin Principal     administrador (superusuario)
-  V-00000005    Jorge Diaz          inventario
-  V-00000006    Lucia Fernandez     atencion
-  V-00000007    Pedro Ramirez       rrhh
+  00000004      Admin Principal     administrador (superusuario)
+  00000005      Jorge Diaz          inventario
+  00000006      Lucia Fernandez     atencion
+  00000007      Pedro Ramirez       rrhh
 
 Prueba de "cédula no autorizada" (debe RECHAZAR el registro):
-  cualquier cédula que no esté en esta lista, ej. V-99999999
+  cualquier cédula que no esté en esta lista, ej. 99999999
 
 
 ------------------------------------------------------------------
@@ -153,11 +153,11 @@ App de Atención (docker attach seguridad_informatica-atencion-1):
 
 Auto-registro por cédula (en cualquiera de las 3 apps, botón
 "Registrarme" en la pantalla de login):
-[ ] Registrar V-00000005 (Jorge Diaz) con un usuario/contraseña
+[ ] Registrar 00000005 (Jorge Diaz) con un usuario/contraseña
     tuyo -> debe quedar con rol inventario
-[ ] Intentar registrar una cédula inventada (ej. V-99999999)
+[ ] Intentar registrar una cédula inventada (ej. 99999999)
     -> debe RECHAZAR el registro
-[ ] Registrar V-00000004 (Admin Principal) -> entra como
+[ ] Registrar 00000004 (Admin Principal) -> entra como
     administrador: probar que ese usuario puede acceder desde las
     3 apps de departamento (atención, rrhh, inventario) sin que le
     nieguen el permiso

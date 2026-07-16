@@ -14,7 +14,7 @@ Tres diagramas:
 
 ```
 Internet → proxy1 (DMZ, único puerto :443)
-             ├── /            → online-platform (estático: HTML/CSS/JS del front)
+             ├── /            → online-platform (estático: build de React servido por Express)
              └── /api/        → proxy2 (directo — mismo proxy1 habla con proxy2)
                                        ├── OpenLDAP (personal, roles)
                                        └── PostgreSQL (datos por departamento)
@@ -69,12 +69,12 @@ para probar el auto-registro:
 
 | cédula | nombre | cargo | ¿ya tiene cuenta? |
 |---|---|---|---|
-| V-00000001 | Ana Gomez | atencion | sí, vía LDAP |
-| V-00000002 | Carlos Perez | rrhh | sí, vía LDAP |
-| V-00000003 | Maria Lopez | inventario | sí, vía LDAP |
-| V-00000004 | Admin Principal | administrador | no — regístrate tú |
-| V-00000005 | Jorge Diaz | inventario | no — regístrate tú |
-| V-00000006 | Lucia Fernandez | atencion | no — regístrate tú |
+| 00000001 | Ana Gomez | atencion | sí, vía LDAP |
+| 00000002 | Carlos Perez | rrhh | sí, vía LDAP |
+| 00000003 | Maria Lopez | inventario | sí, vía LDAP |
+| 00000004 | Admin Principal | administrador | no — regístrate tú |
+| 00000005 | Jorge Diaz | inventario | no — regístrate tú |
+| 00000006 | Lucia Fernandez | atencion | no — regístrate tú |
 
 **Rol `administrador`**: superusuario — lectura y escritura en atención, rrhh, inventario y
 pedidos, además de poder cargar empleados igual que RRHH. No existe una app propia para
@@ -91,29 +91,37 @@ directo en la base de datos — no desde la UI.
 
 ## Funcionalidades de tienda por departamentos
 
-Cada app de departamento (Textual) y la plataforma pública tienen operaciones completas, no
-solo lectura:
+Hay dos superficies de terminal distintas y ambas hablan con el mismo `proxy2`:
 
-- **Inventario** (app de terminal): buscar (`r` limpia el filtro, Enter en el campo de búsqueda
-  filtra), **crear** (`n`), **editar** (`e`) y **eliminar** (`d`), todo contra `proxy2` con
-  permisos `read:inventario` / `write:inventario`.
-- **RRHH** (app de terminal): buscar, **crear** (`n`) y **editar** (`e`) empleados (cédula,
-  nombre, cargo) — sin `eliminar` (ver la nota de por qué en la sección de autenticación).
-- **Atención al Cliente** (app de terminal, dos pestañas):
-  - **Tickets**: mismo CRUD completo que los demás departamentos.
-  - **Pedidos**: ve todos los pedidos de la tienda (con sus items) y puede **cambiar el estado**
-    (`pendiente → procesando → enviado → entregado → cancelado`) con `e`. Los pedidos no se crean
-    ni se eliminan manualmente — la API lo bloquea explícitamente (`POST`/`DELETE` a
-    `/api/pedidos` devuelven 400).
-- **Plataforma pública**: catálogo con buscador, carrito de compra (en el navegador),
-  **checkout real** (descuenta stock dentro de una transacción SQL, valida existencias) y una
-  sección **"Mis pedidos"** con el historial del cliente (items, total, estado — se actualiza
-  cuando Atención cambia el estado).
-- `inventory` tiene columna `precio`; `orders`/`order_items` registran cada compra.
+- **Apps de departamento fijas** (`apps/atencion`, `apps/rrhh`, `apps/inventario` — un
+  contenedor por departamento, sin selector de rol):
+  - **Inventario**: buscar (`r` limpia el filtro, Enter en el campo de búsqueda filtra),
+    **crear** (`n`), **editar** (`e`) y **eliminar** (`d`).
+  - **RRHH**: buscar, **crear** (`n`) y **editar** (`e`) empleados (cédula, nombre, cargo) — sin
+    `eliminar` (ver la nota de por qué en la sección de autenticación).
+  - **Atención al Cliente** (dos pestañas): **Tickets** (CRUD completo) y **Pedidos** (ver todos
+    los pedidos con sus items y **cambiar el estado** con `e`; no se crean ni eliminan
+    manualmente desde aquí).
+- **`online-tui`** (un solo contenedor, login único — LDAP o cuenta auto-registrada — y menú
+  según el rol del token):
+  - **Atención/Administrador** → pestaña **Nuevo Pedido**: mira el mismo catálogo público,
+    agrega productos con cantidad y confirma el pedido dando **nombre y cédula del comprador**
+    (sin cobro, el comprador no necesita cuenta); y pestaña **Pedidos** para cambiar el estado.
+  - **Inventario/Administrador** → crear, editar (incluye **precio** y **disponible**) y
+    eliminar productos. Un producto marcado `disponible = false` desaparece del catálogo público
+    y de la pestaña Nuevo Pedido, aunque siga existiendo en el inventario.
+  - **RRHH/Administrador** → registrar y listar empleados (cédula, nombre, cargo).
+  - **Administrador** ve las cuatro pestañas a la vez.
+- **Plataforma pública** (app React en `online-platform/client/`): catálogo de precios de solo
+  lectura con buscador, sin carrito ni cuentas de invitado — comprar es siempre a través de
+  Atención en `online-tui`.
+- `inventory` tiene columnas `precio` y `disponible`; `orders`/`order_items` registran cada
+  pedido, ya sea del checkout de invitado (histórico, sin frontend activo hoy) o creado por
+  Atención (`cliente_nombre` + `cliente_cedula`).
 
-Con esto el ciclo completo de una tienda queda cerrado: el cliente compra en la web → el pedido
-aparece en la cola de Atención → Atención actualiza el estado → el cliente lo ve reflejado en su
-historial.
+Con esto el ciclo de una compra queda: el comprador se acerca/llama → Atención arma el pedido en
+`online-tui` con su nombre y cédula → el pedido aparece en la pestaña Pedidos (de Atención o de la
+app fija de Atención) → se actualiza el estado según avanza.
 
 ## Levantar el proyecto
 
@@ -137,6 +145,12 @@ pestañas Tickets y Pedidos. Para salir sin matar el contenedor: `Ctrl+P` seguid
 > Nota: las cuentas de invitado (`proxy2/src/users.json`) viven dentro del contenedor y
 > **se pierden si reconstruyes `proxy2`** (no hay volumen para ese archivo). Si acabas de
 > reconstruir, vuelve a registrarte antes de probar el checkout o "Mis pedidos".
+
+> Nota: `db/init.sql` solo corre la primera vez que se crea el volumen `db-data`. Si ya tenías
+> el proyecto levantado antes de las columnas `disponible` (inventory) y `cliente_nombre`/
+> `cliente_cedula` (orders), necesitas recrear el volumen para verlas:
+> `docker compose down -v && docker compose up --build -d` (esto borra los datos actuales de
+> Postgres y los vuelve a sembrar).
 
 ## Notas de despliegue
 
@@ -163,7 +177,7 @@ docs/diagrama-funcionamiento.excalidraw
 docs/diagrama-guia-uso.excalidraw
 proxy1/             nginx — único punto público, reenvía / a online-platform y /api/ a proxy2
 proxy2/              gateway único: auth LDAP + auto-registro por cédula + invitados (JSON) + BD
-online-platform/     front web estático (sin lógica de API)
+online-platform/     catálogo web en React (client/), servido como estático por Express — sin lógica de API
 apps/atencion/       Python + Textual — terminal, red aislada
 apps/rrhh/           Python + Textual — terminal, red aislada
 apps/inventario/     Python + Textual — terminal, red aislada
@@ -178,12 +192,13 @@ db/init.sql          esquema y datos semilla de PostgreSQL
 | POST | `/api/staff/register` | cualquiera — requiere cédula ya cargada por RRHH/Administrador |
 | POST | `/api/staff/login` | personal auto-registrado (no-LDAP) |
 | POST | `/api/guest/register`, `/api/guest/login` | invitados (JSON) |
-| GET | `/api/public/catalog?q=` | público, sin login |
-| POST | `/api/public/orders` | invitado con `checkout` (checkout real) |
+| GET | `/api/public/catalog?q=` | público, sin login — solo productos con `disponible = true` |
+| POST | `/api/public/orders` | invitado con `checkout` (histórico, sin frontend activo hoy) |
 | GET | `/api/public/orders/mine` | invitado — su propio historial |
+| POST | `/api/pedidos` | rol `atencion`/`administrador` — crea el pedido con `{cliente_nombre, cliente_cedula, items}` |
+| GET/PUT | `/api/pedidos` | rol `atencion` o `administrador` — ver y cambiar estado |
 | GET/POST/PUT | `/api/:departamento` (+ `?q=` búsqueda) | personal, según `read:`/`write:` |
 | DELETE | `/api/:departamento/:id` | igual, excepto `pedidos` y `rrhh` (bloqueados) |
-| GET/PUT | `/api/pedidos` | rol `atencion` o `administrador` — ver y cambiar estado |
 
 `POST /auth/login` (bind LDAP) no pasa por `proxy1`; solo lo usan las apps de departamento,
 que hablan con `proxy2` directo por `net-gateway`.

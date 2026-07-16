@@ -22,7 +22,7 @@ const DEPARTMENTS = {
   inventario: {
     table: "inventory",
     searchColumns: ["producto", "ubicacion"],
-    fields: ["producto", "cantidad", "ubicacion", "precio"],
+    fields: ["producto", "cantidad", "ubicacion", "precio", "disponible"],
   },
   pedidos: {
     table: "orders",
@@ -32,7 +32,9 @@ const DEPARTMENTS = {
 };
 
 const ORDER_ITEMS_JOIN = `
-  SELECT o.id, o.guest_username, o.estado, o.total, o.creado_en,
+  SELECT o.id, o.guest_username, o.cliente_nombre, o.cliente_cedula,
+    COALESCE(o.guest_username, o.cliente_nombre) AS comprador,
+    o.estado, o.total, o.creado_en,
     COALESCE(
       json_agg(json_build_object('producto', oi.producto, 'cantidad', oi.cantidad, 'precio_unitario', oi.precio_unitario))
         FILTER (WHERE oi.id IS NOT NULL),
@@ -44,14 +46,16 @@ const ORDER_ITEMS_JOIN = `
 
 /**
  * Lista las órdenes del sistema. Si se proporciona `query`, busca por
- * `guest_username` o `estado` usando coincidencia parcial (ILIKE).
+ * comprador (usuario invitado, nombre o cédula) o `estado` usando coincidencia parcial (ILIKE).
  * @param {string} [query] - Texto de búsqueda opcional.
  * @returns {Promise<Array>} - Arreglo de órdenes con sus items agregados.
  */
 async function listOrders(query) {
   if (query) {
     const { rows } = await pool.query(
-      `${ORDER_ITEMS_JOIN} WHERE o.guest_username ILIKE $1 OR o.estado ILIKE $1 GROUP BY o.id ORDER BY o.id DESC`,
+      `${ORDER_ITEMS_JOIN} WHERE o.guest_username ILIKE $1 OR o.cliente_nombre ILIKE $1
+         OR o.cliente_cedula ILIKE $1 OR o.estado ILIKE $1
+       GROUP BY o.id ORDER BY o.id DESC`,
       [`%${query}%`]
     );
     return rows;
@@ -164,7 +168,7 @@ async function deleteRecord(department, id) {
 }
 
 /**
- * Devuelve el catálogo público (productos) con campos reducidos.
+ * Devuelve el catálogo público (productos disponibles) con campos reducidos.
  * Si `query` está presente, busca por `producto` usando coincidencia parcial.
  * @param {string} [query] - Texto de búsqueda opcional.
  * @returns {Promise<Array>} - Arreglo de productos.
@@ -172,21 +176,74 @@ async function deleteRecord(department, id) {
 async function publicCatalog(query) {
   if (query) {
     const { rows } = await pool.query(
-      "SELECT id, producto, cantidad, precio FROM inventory WHERE producto ILIKE $1 ORDER BY id",
+      "SELECT id, producto, cantidad, precio FROM inventory WHERE disponible = true AND producto ILIKE $1 ORDER BY id",
       [`%${query}%`]
     );
     return rows;
   }
   const { rows } = await pool.query(
-    "SELECT id, producto, cantidad, precio FROM inventory ORDER BY id"
+    "SELECT id, producto, cantidad, precio FROM inventory WHERE disponible = true ORDER BY id"
   );
   return rows;
 }
 
 /**
- * Crea una orden para un `username` con los `items` indicados.
- * Operación transaccional: bloquea filas de inventario (`FOR UPDATE`), valida stock,
- * decrementa inventario, inserta la orden y sus items. Hace `COMMIT` o `ROLLBACK`.
+ * Bloquea filas de inventario (`FOR UPDATE`), valida disponibilidad/stock y decrementa
+ * la cantidad para cada item. Debe ejecutarse dentro de una transacción ya abierta.
+ * @param {import('pg').PoolClient} client - Cliente con una transacción en curso.
+ * @param {Array<Object>} items - Arreglo de items {id, cantidad}.
+ * @returns {Promise<{total: number, orderItems: Array<Object>}>}
+ * @throws {Error} - Producto inexistente, no disponible, cantidad inválida o sin stock.
+ */
+async function _reserveStock(client, items) {
+  let total = 0;
+  const orderItems = [];
+  for (const item of items) {
+    const { rows } = await client.query(
+      "SELECT id, producto, cantidad, precio, disponible FROM inventory WHERE id = $1 FOR UPDATE",
+      [item.id]
+    );
+    const product = rows[0];
+    if (!product) throw new Error(`el producto ${item.id} no existe`);
+    if (!product.disponible) throw new Error(`${product.producto} no está disponible`);
+    const cantidadPedida = Number(item.cantidad) || 0;
+    if (cantidadPedida <= 0) throw new Error(`cantidad inválida para ${product.producto}`);
+    if (product.cantidad < cantidadPedida) {
+      throw new Error(`sin stock suficiente de ${product.producto}`);
+    }
+    total += Number(product.precio) * cantidadPedida;
+    orderItems.push({ producto: product.producto, cantidad: cantidadPedida, precio_unitario: product.precio });
+    await client.query("UPDATE inventory SET cantidad = cantidad - $1 WHERE id = $2", [
+      cantidadPedida,
+      item.id,
+    ]);
+  }
+  return { total, orderItems };
+}
+
+// Inserta la orden y sus items ya calculados; debe ejecutarse dentro de la misma transacción.
+async function _insertOrder(client, orderFields, total, orderItems) {
+  const columns = Object.keys(orderFields);
+  const values = Object.values(orderFields);
+  const placeholders = columns.map((_, i) => `$${i + 1}`).join(", ");
+  const orderRes = await client.query(
+    `INSERT INTO orders (${columns.join(", ")}, estado, total) VALUES (${placeholders}, 'pendiente', $${columns.length + 1}) RETURNING *`,
+    [...values, total]
+  );
+  const order = orderRes.rows[0];
+  for (const item of orderItems) {
+    await client.query(
+      "INSERT INTO order_items (order_id, producto, cantidad, precio_unitario) VALUES ($1, $2, $3, $4)",
+      [order.id, item.producto, item.cantidad, item.precio_unitario]
+    );
+  }
+  return { ...order, items: orderItems };
+}
+
+/**
+ * Crea una orden para un `username` (invitado autenticado) con los `items` indicados.
+ * Operación transaccional: bloquea filas de inventario, valida stock, decrementa
+ * inventario, inserta la orden y sus items. Hace `COMMIT` o `ROLLBACK`.
  * @param {string} username - Nombre de usuario del invitado que realiza la orden.
  * @param {Array<Object>} items - Arreglo de items {id, cantidad}.
  * @returns {Promise<Object>} - Orden creada con su lista de items y total.
@@ -199,41 +256,40 @@ async function createOrder(username, items) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    let total = 0;
-    const orderItems = [];
-    for (const item of items) {
-      const { rows } = await client.query(
-        "SELECT id, producto, cantidad, precio FROM inventory WHERE id = $1 FOR UPDATE",
-        [item.id]
-      );
-      const product = rows[0];
-      if (!product) throw new Error(`el producto ${item.id} no existe`);
-      const cantidadPedida = Number(item.cantidad) || 0;
-      if (cantidadPedida <= 0) throw new Error(`cantidad inválida para ${product.producto}`);
-      if (product.cantidad < cantidadPedida) {
-        throw new Error(`sin stock suficiente de ${product.producto}`);
-      }
-      const subtotal = Number(product.precio) * cantidadPedida;
-      total += subtotal;
-      orderItems.push({ producto: product.producto, cantidad: cantidadPedida, precio_unitario: product.precio });
-      await client.query("UPDATE inventory SET cantidad = cantidad - $1 WHERE id = $2", [
-        cantidadPedida,
-        item.id,
-      ]);
-    }
-    const orderRes = await client.query(
-      "INSERT INTO orders (guest_username, estado, total) VALUES ($1, 'pendiente', $2) RETURNING *",
-      [username, total]
-    );
-    const order = orderRes.rows[0];
-    for (const item of orderItems) {
-      await client.query(
-        "INSERT INTO order_items (order_id, producto, cantidad, precio_unitario) VALUES ($1, $2, $3, $4)",
-        [order.id, item.producto, item.cantidad, item.precio_unitario]
-      );
-    }
+    const { total, orderItems } = await _reserveStock(client, items);
+    const order = await _insertOrder(client, { guest_username: username }, total, orderItems);
     await client.query("COMMIT");
-    return { ...order, items: orderItems };
+    return order;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Crea una orden en nombre de un comprador sin cuenta (usada por Atención), identificado
+ * por nombre y cédula. Misma validación transaccional de stock que `createOrder`.
+ * @param {{cliente_nombre: string, cliente_cedula: string}} comprador
+ * @param {Array<Object>} items - Arreglo de items {id, cantidad}.
+ * @returns {Promise<Object>} - Orden creada con su lista de items y total.
+ * @throws {Error} - Faltan datos del comprador, carrito vacío, producto inexistente, sin stock, etc.
+ */
+async function createStaffOrder({ cliente_nombre, cliente_cedula }, items) {
+  if (!cliente_nombre || !cliente_cedula) {
+    throw new Error("nombre y cédula del comprador son requeridos");
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("selecciona al menos un producto");
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { total, orderItems } = await _reserveStock(client, items);
+    const order = await _insertOrder(client, { cliente_nombre, cliente_cedula }, total, orderItems);
+    await client.query("COMMIT");
+    return order;
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
@@ -250,5 +306,6 @@ module.exports = {
   deleteRecord,
   publicCatalog,
   createOrder,
+  createStaffOrder,
   listMyOrders,
 };

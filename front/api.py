@@ -58,10 +58,14 @@ class ApiClient:
                 raise Exception(r.json().get("error", "Error al registrar"))
             return r.json()
 
-    # Inicia sesión de personal auto-registrado y guarda token/rol/nombre.
+    # Inicia sesión de personal: intenta LDAP primero (ana/carlos/maria) y si falla,
+    # cae a la cuenta auto-registrada por cédula. Sin este fallback, el personal LDAP
+    # nunca puede entrar y el menú por rol jamás llega a mostrarse.
     async def staff_login(self, username: str, password: str):
         async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as c:
-            r = await c.post("/api/staff/login", json={"username": username, "password": password})
+            r = await c.post("/auth/login", json={"username": username, "password": password})
+            if r.status_code != 200:
+                r = await c.post("/api/staff/login", json={"username": username, "password": password})
             if r.status_code != 200:
                 raise Exception(r.json().get("error", "Credenciales inválidas"))
             data = r.json()
