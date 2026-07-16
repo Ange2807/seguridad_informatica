@@ -1,7 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const bcrypt = require("bcryptjs");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import bcrypt from "bcryptjs";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const USERS_FILE = path.join(__dirname, "users.json");
 
 // Lee el archivo local donde se guardan las cuentas de invitados.
@@ -37,4 +39,4 @@ async function verifyGuest(username, password) {
   return user;
 }
 
-module.exports = { registerGuest, verifyGuest };
+export { registerGuest, verifyGuest };
