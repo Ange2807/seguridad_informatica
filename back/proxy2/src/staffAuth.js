@@ -1,5 +1,5 @@
-const bcrypt = require("bcryptjs");
-const { pool } = require("./db");
+import bcrypt from "bcryptjs";
+import { pool } from "./db.js";
 
 // Busca un empleado por cédula en la tabla employees.
 async function findEmployeeByCedula(cedula) {
@@ -54,4 +54,4 @@ async function verifyStaff(username, password) {
   return account;
 }
 
-module.exports = { registerStaff, verifyStaff, findEmployeeByCedula };
+export { registerStaff, verifyStaff, findEmployeeByCedula };

@@ -1,4 +1,5 @@
-const { Pool } = require("pg");
+import pg from "pg";
+const { Pool } = pg;
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -298,7 +299,7 @@ async function createStaffOrder({ cliente_nombre, cliente_cedula }, items) {
   }
 }
 
-module.exports = {
+export {
   pool,
   listDepartment,
   createRecord,

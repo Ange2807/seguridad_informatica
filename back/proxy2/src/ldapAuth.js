@@ -1,4 +1,4 @@
-const ldap = require("ldapjs");
+import ldap from "ldapjs";
 
 // Intenta hacer bind en LDAP con las credenciales del usuario.
 function bindAsUser(username, password) {
@@ -53,4 +53,4 @@ function findRole(username) {
   });
 }
 
-module.exports = { bindAsUser, findRole };
+export { bindAsUser, findRole };

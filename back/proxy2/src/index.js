@@ -1,11 +1,16 @@
-const express = require("express");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const roles = require("../roles.json");
-const { bindAsUser, findRole } = require("./ldapAuth");
-const { registerGuest, verifyGuest } = require("./guestAuth");
-const { registerStaff, verifyStaff } = require("./staffAuth");
-const db = require("./db");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import express from "express";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import { bindAsUser, findRole } from "./ldapAuth.js";
+import { registerGuest, verifyGuest } from "./guestAuth.js";
+import { registerStaff, verifyStaff } from "./staffAuth.js";
+import * as db from "./db.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const roles = JSON.parse(fs.readFileSync(path.join(__dirname, "../roles.json"), "utf-8"));
 
 const app = express();
 app.use(cors());
