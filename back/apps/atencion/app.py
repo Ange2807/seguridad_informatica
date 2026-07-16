@@ -18,6 +18,7 @@ from textual.widgets import (
     TabPane,
 )
 
+### Configuración de variables de entorno
 PROXY2_URL = os.environ.get("PROXY2_URL", "http://proxy2:4000")
 DEPARTMENT = os.environ.get("DEPARTMENT", "atencion")
 TITLE = "Atención al Cliente"

@@ -13,12 +13,14 @@ from textual.containers import Vertical, Horizontal
 class BaseDeptTab(Vertical):
     """Clase base para las pestañas de departamento."""
     
+    # Guarda el departamento, el título de la pestaña y el id de su tabla.
     def __init__(self, department: str, title: str, id: str):
         super().__init__(id=id)
         self.department = department
         self.tab_title = title
         self.table_id = f"table-{department}"
 
+    # Descarga los registros del departamento y repuebla la tabla.
     async def _load_data(self) -> None:
         table = self.query_one(f"#{self.table_id}", DataTable)
         table.clear()
@@ -28,9 +30,11 @@ class BaseDeptTab(Vertical):
         except Exception as e:
             self.app.notify(f"Error cargando {self.department}: {e}", severity="error")
 
+    # Pinta las filas en la tabla; cada subclase define sus columnas.
     def populate_table(self, table: DataTable, records: list) -> None:
         pass
 
+    # Rellena el formulario con la fila seleccionada; cada subclase lo implementa.
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         pass
 
@@ -38,9 +42,11 @@ class BaseDeptTab(Vertical):
 # ── Pestaña RRHH ─────────────────────────────────────────
 
 class RrhhTab(BaseDeptTab):
+    # Fija el departamento "rrhh" para esta pestaña.
     def __init__(self):
         super().__init__("rrhh", "👥 RRHH", "tab-rrhh")
 
+    # Dibuja la tabla de empleados y el formulario de cédula/nombre/cargo.
     def compose(self) -> ComposeResult:
         yield DataTable(id=self.table_id, classes="dept-table")
         with Horizontal(classes="form-row"):
@@ -55,16 +61,19 @@ class RrhhTab(BaseDeptTab):
             yield Button("Actualizar Sel.", variant="warning", id="btn-rrhh-update")
             yield Button("Refrescar", variant="default", id="btn-rrhh-refresh")
 
+    # Configura columnas de la tabla y carga los empleados al montar.
     async def on_mount(self) -> None:
         table = self.query_one(f"#{self.table_id}", DataTable)
         table.cursor_type = "row"
         table.add_columns("ID", "Cédula", "Nombre", "Cargo")
         await self._load_data()
 
+    # Agrega una fila por cada empleado recibido de la API.
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["cedula"], r["nombre"], r["cargo"])
 
+    # Copia la fila seleccionada al formulario para poder editarla.
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.control.id == self.table_id:
             row = event.control.get_row(event.row_key)
@@ -81,9 +90,11 @@ class RrhhTab(BaseDeptTab):
 # ── Pestaña Inventario ───────────────────────────────────
 
 class InventarioTab(BaseDeptTab):
+    # Fija el departamento "inventario" para esta pestaña.
     def __init__(self):
         super().__init__("inventario", "📦 Inventario", "tab-inventario")
 
+    # Dibuja la tabla de productos y el formulario de producto/cantidad/precio/ubicación.
     def compose(self) -> ComposeResult:
         yield DataTable(id=self.table_id, classes="dept-table")
         with Horizontal(classes="form-row"):
@@ -97,16 +108,19 @@ class InventarioTab(BaseDeptTab):
             yield Button("Eliminar Sel.", variant="error", id="btn-inv-delete")
             yield Button("Refrescar", variant="default", id="btn-inv-refresh")
 
+    # Configura columnas de la tabla y carga el inventario al montar.
     async def on_mount(self) -> None:
         table = self.query_one(f"#{self.table_id}", DataTable)
         table.cursor_type = "row"
         table.add_columns("ID", "Producto", "Cant.", "Precio", "Ubicación")
         await self._load_data()
 
+    # Agrega una fila por cada producto recibido de la API.
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["producto"], str(r["cantidad"]), f"${float(r['precio']):.2f}", r["ubicacion"])
 
+    # Copia la fila seleccionada al formulario para poder editarla.
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.control.id == self.table_id:
             row = event.control.get_row(event.row_key)
@@ -119,9 +133,11 @@ class InventarioTab(BaseDeptTab):
 # ── Pestaña Atención (Tickets) ───────────────────────────
 
 class AtencionTab(BaseDeptTab):
+    # Fija el departamento "atencion" para esta pestaña.
     def __init__(self):
         super().__init__("atencion", "🎧 Tickets", "tab-atencion")
 
+    # Dibuja la tabla de tickets y el formulario de cliente/asunto/estado.
     def compose(self) -> ComposeResult:
         yield DataTable(id=self.table_id, classes="dept-table")
         with Horizontal(classes="form-row"):
@@ -137,16 +153,19 @@ class AtencionTab(BaseDeptTab):
             yield Button("Eliminar Sel.", variant="error", id="btn-atn-delete")
             yield Button("Refrescar", variant="default", id="btn-atn-refresh")
 
+    # Configura columnas de la tabla y carga los tickets al montar.
     async def on_mount(self) -> None:
         table = self.query_one(f"#{self.table_id}", DataTable)
         table.cursor_type = "row"
         table.add_columns("ID", "Cliente", "Asunto", "Estado")
         await self._load_data()
 
+    # Agrega una fila por cada ticket recibido de la API.
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["cliente"], r["asunto"], r["estado"])
 
+    # Copia la fila seleccionada al formulario para poder editarla.
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.control.id == self.table_id:
             row = event.control.get_row(event.row_key)
@@ -162,9 +181,11 @@ class AtencionTab(BaseDeptTab):
 # ── Pestaña Pedidos ──────────────────────────────────────
 
 class PedidosTab(BaseDeptTab):
+    # Fija el departamento "pedidos" para esta pestaña.
     def __init__(self):
         super().__init__("pedidos", "🛒 Pedidos", "tab-pedidos")
 
+    # Dibuja la tabla de pedidos y el selector de nuevo estado.
     def compose(self) -> ComposeResult:
         yield DataTable(id=self.table_id, classes="dept-table")
         with Horizontal(classes="form-row"):
@@ -176,16 +197,19 @@ class PedidosTab(BaseDeptTab):
             yield Button("Actualizar Estado Sel.", variant="warning", id="btn-ped-update")
             yield Button("Refrescar", variant="default", id="btn-ped-refresh")
 
+    # Configura columnas de la tabla y carga los pedidos al montar.
     async def on_mount(self) -> None:
         table = self.query_one(f"#{self.table_id}", DataTable)
         table.cursor_type = "row"
         table.add_columns("ID", "Usuario", "Estado", "Total", "Fecha")
         await self._load_data()
 
+    # Agrega una fila por cada pedido recibido de la API.
     def populate_table(self, table: DataTable, records: list) -> None:
         for r in records:
             table.add_row(str(r["id"]), r["guest_username"], r["estado"], f"${float(r['total']):.2f}", str(r["creado_en"])[:10])
 
+    # Copia el estado del pedido seleccionado al selector para poder cambiarlo.
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.control.id == self.table_id:
             row = event.control.get_row(event.row_key)
@@ -206,16 +230,18 @@ class StaffScreen(Screen):
         ("ctrl+q", "quit", "Salir"),
     ]
 
+    # Dibuja la barra superior (usuario + salir) y el contenedor de pestañas.
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal(id="top-bar"):
             yield Static("", id="user-info")
             yield Button("🚪 Salir", variant="error", id="btn-logout", classes="nav-btn")
-        
+
         with Vertical(id="staff-wrapper"):
             yield TabbedContent(id="staff-tabs")
         yield Footer()
 
+    # Muestra el usuario/rol actual y agrega solo las pestañas que su rol puede ver.
     async def on_mount(self) -> None:
         api = self.app.api
         display_name = api.nombre or api.username or "?"
@@ -234,6 +260,7 @@ class StaffScreen(Screen):
 
     # ── Utils ────────────────────────────────────────────
 
+    # Devuelve el id de la fila seleccionada en la tabla de la pestaña, o None si no hay selección.
     def _get_selected_id(self, tab_instance: BaseDeptTab) -> int | None:
         table = tab_instance.query_one(f"#{tab_instance.table_id}", DataTable)
         if table.cursor_row is None:
@@ -245,9 +272,11 @@ class StaffScreen(Screen):
 
     # ── Events ───────────────────────────────────────────
 
+    # Delega el cierre de sesión a la app principal.
     def action_do_logout(self) -> None:
         self.app.do_logout()
 
+    # Enruta cada botón presionado (por prefijo de id) al CRUD de su departamento.
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         btn = event.button.id
         if btn == "btn-logout":

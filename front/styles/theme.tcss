@@ -282,36 +282,5 @@ DataTable > .datatable--cursor {
 }
 
 .form-actions Button {
-    margin: 0 2;
-    min-width: 24;
-    height: 3;
-    background: #1f2937; /* Minimalist dark grey */
-    color: #f3f4f6;
-    border: none;
-    text-style: bold;
-}
-.form-actions Button:hover {
-    background: #374151;
-}
-
-/* ── Premium Button Styles ── */
-.form-actions Button.-success {
-    background: #059669;
-}
-.form-actions Button.-success:hover {
-    background: #10b981;
-}
-
-.form-actions Button.-warning {
-    background: #d97706;
-}
-.form-actions Button.-warning:hover {
-    background: #f59e0b;
-}
-
-.form-actions Button.-error {
-    background: #dc2626;
-}
-.form-actions Button.-error:hover {
-    background: #ef4444;
+    margin: 0 1;
 }

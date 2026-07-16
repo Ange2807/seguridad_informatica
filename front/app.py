@@ -17,21 +17,26 @@ class SecureCorpApp(App):
     SUB_TITLE = "Plataforma de Seguridad Empresarial"
     CSS_PATH = Path("styles/theme.tcss")
 
+    # Crea el cliente HTTP compartido por todas las pantallas.
     def __init__(self):
         super().__init__()
         self.api = ApiClient()
 
+    # Muestra la pantalla de login al arrancar la app.
     def on_mount(self) -> None:
         self.push_screen(LoginScreen())
 
     # ── Navegación ───────────────────────────────────────
 
+    # Cambia a la pantalla principal de staff tras el login.
     def show_staff(self) -> None:
         self.switch_screen(StaffScreen())
 
+    # Vuelve a la pantalla de login.
     def show_login(self) -> None:
         self.switch_screen(LoginScreen())
 
+    # Cierra la sesión actual y vuelve al login.
     def do_logout(self) -> None:
         self.api.logout()
         self.show_login()

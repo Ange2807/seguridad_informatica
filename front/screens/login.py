@@ -12,6 +12,7 @@ class LoginScreen(Screen):
 
     BINDINGS = [("ctrl+q", "quit", "Salir")]
 
+    # Dibuja el formulario de login/registro de staff.
     def compose(self) -> ComposeResult:
         yield Header()
         with Center(id="login-wrapper"):
@@ -36,6 +37,7 @@ class LoginScreen(Screen):
 
     # ── Eventos ──────────────────────────────────────────
 
+    # Maneja login y auto-registro de staff según el botón presionado.
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         btn = event.button.id
         error_w = self.query_one("#login-error", Static)

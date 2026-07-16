@@ -42,6 +42,12 @@ const ORDER_ITEMS_JOIN = `
   LEFT JOIN order_items oi ON oi.order_id = o.id
 `;
 
+/**
+ * Lista las órdenes del sistema. Si se proporciona `query`, busca por
+ * `guest_username` o `estado` usando coincidencia parcial (ILIKE).
+ * @param {string} [query] - Texto de búsqueda opcional.
+ * @returns {Promise<Array>} - Arreglo de órdenes con sus items agregados.
+ */
 async function listOrders(query) {
   if (query) {
     const { rows } = await pool.query(
@@ -55,12 +61,10 @@ async function listOrders(query) {
 }
 
 /**
- * Lista las órdenes del sistema. Si se proporciona `query`, busca por
- * `guest_username` o `estado` usando coincidencia parcial (ILIKE).
- * @param {string} [query] - Texto de búsqueda opcional.
- * @returns {Promise<Array>} - Arreglo de órdenes con sus items agregados.
+ * Devuelve las órdenes pertenecientes a un usuario específico.
+ * @param {string} username - Nombre de usuario del invitado.
+ * @returns {Promise<Array>} - Arreglo de órdenes del usuario.
  */
-
 async function listMyOrders(username) {
   const { rows } = await pool.query(
     `${ORDER_ITEMS_JOIN} WHERE o.guest_username = $1 GROUP BY o.id ORDER BY o.id DESC`,
@@ -70,11 +74,12 @@ async function listMyOrders(username) {
 }
 
 /**
- * Devuelve las órdenes pertenecientes a un usuario específico.
- * @param {string} username - Nombre de usuario del invitado.
- * @returns {Promise<Array>} - Arreglo de órdenes del usuario.
+ * Obtiene la configuración del departamento (tabla, columnas de búsqueda, campos).
+ * Lanza un error si el departamento no existe.
+ * @param {string} department - Identificador del departamento.
+ * @returns {Object} - Configuración del departamento.
+ * @throws {Error} - "departamento desconocido" si no existe.
  */
-
 function getDept(department) {
   const dept = DEPARTMENTS[department];
   if (!dept) throw new Error("departamento desconocido");
@@ -82,13 +87,12 @@ function getDept(department) {
 }
 
 /**
- * Obtiene la configuración del departamento (tabla, columnas de búsqueda, campos).
- * Lanza un error si el departamento no existe.
+ * Lista registros de un departamento genérico. Para `pedidos` delega en `listOrders`.
+ * Si se proporciona `query`, realiza búsqueda parcial sobre las columnas definidas.
  * @param {string} department - Identificador del departamento.
- * @returns {Object} - Configuración del departamento.
- * @throws {Error} - "departamento desconocido" si no existe.
+ * @param {string} [query] - Texto de búsqueda opcional.
+ * @returns {Promise<Array>} - Arreglo de registros.
  */
-
 async function listDepartment(department, query) {
   if (department === "pedidos") return listOrders(query);
   const dept = getDept(department);
@@ -106,13 +110,12 @@ async function listDepartment(department, query) {
 }
 
 /**
- * Lista registros de un departamento genérico. Para `pedidos` delega en `listOrders`.
- * Si se proporciona `query`, realiza búsqueda parcial sobre las columnas definidas.
+ * Crea un registro en la tabla asociada al departamento usando solo los campos válidos.
  * @param {string} department - Identificador del departamento.
- * @param {string} [query] - Texto de búsqueda opcional.
- * @returns {Promise<Array>} - Arreglo de registros.
+ * @param {Object} data - Objeto con los campos a insertar.
+ * @returns {Promise<Object>} - Registro recién insertado.
+ * @throws {Error} - Si no se reciben campos válidos.
  */
-
 async function createRecord(department, data) {
   const dept = getDept(department);
   const columns = dept.fields.filter((field) => data[field] !== undefined);
@@ -127,13 +130,13 @@ async function createRecord(department, data) {
 }
 
 /**
- * Crea un registro en la tabla asociada al departamento usando solo los campos válidos.
+ * Actualiza un registro por `id` en la tabla del departamento usando los campos provistos.
  * @param {string} department - Identificador del departamento.
- * @param {Object} data - Objeto con los campos a insertar.
- * @returns {Promise<Object>} - Registro recién insertado.
- * @throws {Error} - Si no se reciben campos válidos.
+ * @param {number} id - ID del registro a actualizar.
+ * @param {Object} data - Campos a actualizar.
+ * @returns {Promise<Object>} - Registro actualizado.
+ * @throws {Error} - Si no se reciben campos válidos o el registro no existe.
  */
-
 async function updateRecord(department, id, data) {
   const dept = getDept(department);
   const columns = dept.fields.filter((field) => data[field] !== undefined);
@@ -149,14 +152,11 @@ async function updateRecord(department, id, data) {
 }
 
 /**
- * Actualiza un registro por `id` en la tabla del departamento usando los campos provistos.
+ * Elimina un registro por `id` en la tabla del departamento.
  * @param {string} department - Identificador del departamento.
- * @param {number} id - ID del registro a actualizar.
- * @param {Object} data - Campos a actualizar.
- * @returns {Promise<Object>} - Registro actualizado.
- * @throws {Error} - Si no se reciben campos válidos o el registro no existe.
+ * @param {number} id - ID del registro a eliminar.
+ * @throws {Error} - Si el registro no existe.
  */
-
 async function deleteRecord(department, id) {
   const dept = getDept(department);
   const { rowCount } = await pool.query(`DELETE FROM ${dept.table} WHERE id = $1`, [id]);
@@ -164,12 +164,11 @@ async function deleteRecord(department, id) {
 }
 
 /**
- * Elimina un registro por `id` en la tabla del departamento.
- * @param {string} department - Identificador del departamento.
- * @param {number} id - ID del registro a eliminar.
- * @throws {Error} - Si el registro no existe.
+ * Devuelve el catálogo público (productos) con campos reducidos.
+ * Si `query` está presente, busca por `producto` usando coincidencia parcial.
+ * @param {string} [query] - Texto de búsqueda opcional.
+ * @returns {Promise<Array>} - Arreglo de productos.
  */
-
 async function publicCatalog(query) {
   if (query) {
     const { rows } = await pool.query(
@@ -185,12 +184,14 @@ async function publicCatalog(query) {
 }
 
 /**
- * Devuelve el catálogo público (productos) con campos reducidos.
- * Si `query` está presente, busca por `producto` usando coincidencia parcial.
- * @param {string} [query] - Texto de búsqueda opcional.
- * @returns {Promise<Array>} - Arreglo de productos.
+ * Crea una orden para un `username` con los `items` indicados.
+ * Operación transaccional: bloquea filas de inventario (`FOR UPDATE`), valida stock,
+ * decrementa inventario, inserta la orden y sus items. Hace `COMMIT` o `ROLLBACK`.
+ * @param {string} username - Nombre de usuario del invitado que realiza la orden.
+ * @param {Array<Object>} items - Arreglo de items {id, cantidad}.
+ * @returns {Promise<Object>} - Orden creada con su lista de items y total.
+ * @throws {Error} - Cuando el carrito está vacío, producto inexistente, cantidad inválida o sin stock.
  */
-
 async function createOrder(username, items) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("el carrito está vacío");
@@ -240,16 +241,6 @@ async function createOrder(username, items) {
     client.release();
   }
 }
-
-/**
- * Crea una orden para un `username` con los `items` indicados.
- * Operación transaccional: bloquea filas de inventario (`FOR UPDATE`), valida stock,
- * decrementa inventario, inserta la orden y sus items. Hace `COMMIT` o `ROLLBACK`.
- * @param {string} username - Nombre de usuario del invitado que realiza la orden.
- * @param {Array<Object>} items - Arreglo de items {id, cantidad}.
- * @returns {Promise<Object>} - Orden creada con su lista de items y total.
- * @throws {Error} - Cuando el carrito está vacío, producto inexistente, cantidad inválida o sin stock.
- */
 
 module.exports = {
   pool,

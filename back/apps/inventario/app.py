@@ -7,6 +7,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, Static
 
+## Configuración de variables de entorno
 PROXY2_URL = os.environ.get("PROXY2_URL", "http://proxy2:4000")
 DEPARTMENT = os.environ.get("DEPARTMENT", "inventario")
 TITLE = "Inventario"

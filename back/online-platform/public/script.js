@@ -1,6 +1,7 @@
 let authToken = null;
 let cart = [];
 
+// Muestra un mensaje temporal (éxito o error) en el banner de la página.
 function showMsg(text, ok) {
   const el = document.getElementById('msg');
   el.textContent = text;
@@ -10,6 +11,7 @@ function showMsg(text, ok) {
   }, 5000);
 }
 
+// Consulta el catálogo público (con búsqueda opcional) y pinta las tarjetas de producto.
 async function loadCatalog(query) {
   const qs = query ? `?q=${encodeURIComponent(query)}` : '';
   try {
@@ -40,6 +42,7 @@ async function loadCatalog(query) {
   }
 }
 
+// Agrega un producto al carrito en memoria o incrementa su cantidad si ya estaba.
 function addToCart({ id, nombre, precio }) {
   const existing = cart.find(item => item.id === id);
   if (existing) {
@@ -50,6 +53,7 @@ function addToCart({ id, nombre, precio }) {
   renderCart();
 }
 
+// Redibuja la lista del carrito y el total a partir del estado en memoria.
 function renderCart() {
   const list = document.getElementById('cart-items');
   if (cart.length === 0) {
@@ -69,15 +73,18 @@ function renderCart() {
   document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
 }
 
+// Busca en el catálogo con el texto ingresado.
 document.getElementById('search-btn').addEventListener('click', () => {
   loadCatalog(document.getElementById('search-input').value);
 });
 
+// Limpia el buscador y vuelve a mostrar el catálogo completo.
 document.getElementById('clear-search-btn').addEventListener('click', () => {
   document.getElementById('search-input').value = '';
   loadCatalog();
 });
 
+// Envía el carrito como pedido real (requiere sesión de invitado) y refresca catálogo/pedidos.
 document.getElementById('checkout-btn').addEventListener('click', async () => {
   if (!authToken) {
     showMsg('Inicia sesión de invitado para poder pagar.', false);
@@ -110,6 +117,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
   }
 });
 
+// Descarga y muestra el historial de pedidos del invitado autenticado.
 async function loadMyOrders() {
   if (!authToken) return;
   try {
@@ -142,6 +150,7 @@ async function loadMyOrders() {
   }
 }
 
+// Crea una cuenta de invitado nueva desde el formulario de registro.
 document.getElementById('register-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('reg-user').value;
@@ -162,6 +171,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   }
 });
 
+// Inicia sesión de invitado, guarda el token en memoria y carga sus pedidos.
 document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('login-user').value;
